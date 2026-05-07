@@ -1,37 +1,36 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Bell,
-  ChevronRight,
   Cloud,
+  Sun,
   Gamepad2,
-  Heart,
-  Loader2,
+  Wind,
   Moon,
+  TrendingUp,
+  Bell,
+  ArrowRight,
+  Loader2,
+  Heart,
   Package,
+  Zap,
+  ChevronRight,
   Scale,
   Search,
-  Sun,
-  TrendingUp,
-  Wind,
-  Zap,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import Layout from '@/components/Layout';
-import RarityBadge, { type RarityTier } from '@/components/RarityBadge';
 import { supabase } from '@/lib/supabase';
+import RarityBadge from '@/components/RarityBadge';
+import BottomSheet from '@/components/BottomSheet';
 import { cn } from '@/lib/utils';
 
-type TraderStatus = 'sunny' | 'playing' | 'drifting' | 'dreaming';
-type Compatibility = 'perfect' | 'compatible' | 'incompatible';
-type ItemRarity = 'N' | 'R' | 'S' | 'SR';
-
+// ─── Types ───
 interface TraderProfile {
   id: string;
   username: string;
   display_name: string | null;
   avatar_url: string | null;
-  current_status: TraderStatus;
+  current_status: 'sunny' | 'playing' | 'drifting' | 'dreaming';
+  preferred_method: 'tickets_only' | 'gifts_only' | 'both';
   reputation_score: number;
   total_trades: number;
   dream_mints: number;
@@ -39,33 +38,28 @@ interface TraderProfile {
   can_claim_today: boolean;
 }
 
-interface MatchItem {
-  item_id: string;
-  name: string;
-  rarity: ItemRarity;
-}
-
 interface TradeMatch {
   matched_trader_id: string;
   matched_username: string;
   matched_avatar_url: string | null;
   match_score: number;
-  their_wanted_items: MatchItem[] | null;
-  your_wanted_items: MatchItem[] | null;
-  method_compatibility: Compatibility;
+  their_wanted_items: { item_id: string; name: string; rarity: string }[] | null;
+  your_wanted_items: { item_id: string; name: string; rarity: string }[] | null;
+  method_compatibility: 'perfect' | 'compatible' | 'incompatible';
 }
 
 interface TrendingItem {
   id: string;
   name: string;
-  rarity: ItemRarity;
-  character: string | null;
-  demand_score: number | null;
-  image_url?: string | null;
-  thumbnail_url?: string | null;
+  rarity: 'N' | 'R' | 'S' | 'SR';
+  character: string;
+  collection_id: string | null;
+  demand_score: number;
+  image_url: string | null;
+  thumbnail_url: string | null;
 }
 
-interface ActivityNotification {
+interface Notification {
   id: string;
   type: string;
   title: string;
@@ -74,716 +68,250 @@ interface ActivityNotification {
   created_at: string;
 }
 
-const STATUS_CONFIG: Record<
-  TraderStatus,
-  { label: string; icon: typeof Sun; color: string; bgClass: string; ringClass: string }
-> = {
-  sunny: {
-    label: 'Sunny',
-    icon: Sun,
-    color: '#E5A400',
-    bgClass: 'bg-[rgba(255,236,178,0.7)]',
-    ringClass: 'ring-[#E5A400]',
-  },
-  playing: {
-    label: 'Playing',
-    icon: Gamepad2,
-    color: '#4A90E2',
-    bgClass: 'bg-[rgba(180,212,247,0.55)]',
-    ringClass: 'ring-[#4A90E2]',
-  },
-  drifting: {
-    label: 'Drifting',
-    icon: Wind,
-    color: '#E18E47',
-    bgClass: 'bg-[rgba(255,220,191,0.7)]',
-    ringClass: 'ring-[#E18E47]',
-  },
-  dreaming: {
-    label: 'Dreaming',
-    icon: Moon,
-    color: '#9A7AE7',
-    bgClass: 'bg-[rgba(223,211,255,0.7)]',
-    ringClass: 'ring-[#9A7AE7]',
-  },
+const STATUS_CONFIG = {
+  sunny:    { label: 'Sunny',    icon: Sun,       color: '#F1C40F', bg: 'bg-yellow-50',    ring: 'ring-yellow-400' },
+  playing:  { label: 'Playing',  icon: Gamepad2,  color: '#3498DB', bg: 'bg-blue-50',      ring: 'ring-blue-400' },
+  drifting: { label: 'Drifting', icon: Wind,      color: '#E67E22', bg: 'bg-orange-50',    ring: 'ring-orange-400' },
+  dreaming: { label: 'Dreaming', icon: Moon,      color: '#9B59B6', bg: 'bg-purple-50',    ring: 'ring-purple-400' },
+} as const;
+
+const COMPATIBILITY_LABEL = {
+  perfect:      { text: 'Perfect Match',     color: 'text-green-500',  bg: 'bg-green-50',  border: 'border-green-200' },
+  compatible:   { text: 'Compatible',        color: 'text-amber-500',  bg: 'bg-amber-50',  border: 'border-amber-200' },
+  incompatible: { text: 'Different Method',  color: 'text-red-400',    bg: 'bg-red-50',    border: 'border-red-200' },
 };
 
-const COMPATIBILITY_CONFIG: Record<
-  Compatibility,
-  { label: string; className: string }
-> = {
-  perfect: {
-    label: 'Perfect Match',
-    className: 'bg-[rgba(165,214,200,0.18)] text-[#4E927E] border-[rgba(165,214,200,0.35)]',
-  },
-  compatible: {
-    label: 'Compatible',
-    className: 'bg-[rgba(255,224,130,0.18)] text-[#B78425] border-[rgba(255,224,130,0.35)]',
-  },
-  incompatible: {
-    label: 'Different Method',
-    className: 'bg-[rgba(239,154,154,0.16)] text-[#B96565] border-[rgba(239,154,154,0.35)]',
-  },
+const NOTIF_CONFIG: Record<string, { icon: any; color: string; bg: string; label: string }> = {
+  offer_received:   { icon: Heart,       color: '#E84393', bg: 'bg-pink-50',    label: 'Trade Offer' },
+  offer_accepted:   { icon: Zap,         color: '#2ECC71', bg: 'bg-green-50',   label: 'Accepted' },
+  offer_declined:   { icon: Wind,        color: '#E67E22', bg: 'bg-orange-50',  label: 'Declined' },
+  trade_completed:  { icon: Package,     color: '#7ED7C1', bg: 'bg-[#7ED7C1]/10', label: 'Completed' },
+  match_found:      { icon: Search,      color: '#9B59B6', bg: 'bg-purple-50',  label: 'Match' },
+  system:           { icon: Bell,        color: '#3498DB', bg: 'bg-blue-50',    label: 'System' },
+  verification:     { icon: ShieldCheck, color: '#2ECC71', bg: 'bg-green-50',   label: 'Verified' },
+  ghosting_warning: { icon: ShieldAlert, color: '#E74C3C', bg: 'bg-red-50',     label: 'Reminder' },
+  badge_earned:     { icon: Award,       color: '#FFD700', bg: 'bg-amber-50',   label: 'Badge' },
 };
 
-const rarityMap: Record<ItemRarity, RarityTier> = {
-  N: 'Moon',
-  R: 'Star',
-  S: 'Comet',
-  SR: 'Galaxy',
-};
-
-function formatRelativeDate(value: string) {
-  const date = new Date(value);
-  const diffMs = Date.now() - date.getTime();
-  const diffMinutes = Math.max(1, Math.floor(diffMs / 60000));
-
-  if (diffMinutes < 60) return `${diffMinutes}m ago`;
-
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-function notificationIcon(type: string) {
-  switch (type) {
-    case 'offer_received':
-      return Heart;
-    case 'offer_accepted':
-      return Zap;
-    case 'offer_declined':
-      return Wind;
-    case 'trade_completed':
-      return Package;
-    case 'match_found':
-      return Search;
-    case 'verification':
-      return Sun;
-    case 'ghosting_warning':
-      return Moon;
-    case 'badge_earned':
-      return TrendingUp;
-    default:
-      return Bell;
-  }
-}
-
+// ─── Kumo Mascot (REAL PNG) ───
 function KumoMascot({ size = 80 }: { size?: number }) {
   return <img src="/kumo-mascot.png" alt="Kumo" style={{ width: size, height: size }} className="object-contain" />;
 }
 
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  accentClass,
-}: {
-  label: string;
-  value: number;
-  icon: typeof Cloud;
-  accentClass: string;
-}) {
-  return (
-    <div className="rounded-[24px] bg-white/[0.74] border border-[rgba(165,214,200,0.16)] px-4 py-4 shadow-[0_10px_24px_rgba(46,42,40,0.04)]">
-      <div className={cn('mb-2 inline-flex rounded-full p-2', accentClass)}>
-        <Icon size={16} className="text-[#2E2A28]" />
-      </div>
-      <p className="text-[22px] font-bold font-display text-[#2E2A28]">{value}</p>
-      <p className="text-[11px] uppercase tracking-[0.08em] text-[#2E2A2899]">{label}</p>
-    </div>
-  );
+function NotifIcon({ type }: { type: string }) {
+  const cfg = NOTIF_CONFIG[type] || NOTIF_CONFIG.system;
+  const Icon = cfg.icon;
+  return <Icon className="w-5 h-5" style={{ color: cfg.color }} />;
 }
 
+function getDateGroup(dateStr: string): string {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days === 0) {
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours === 0) { const mins = Math.floor(diff / (1000 * 60)); return mins < 1 ? 'Just now' : `${mins}m ago`; }
+    return 'Today';
+  }
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return d.toLocaleDateString(undefined, { weekday: 'long' });
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function formatTime(dateStr: string): string {
+  return new Date(dateStr).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+// ─── Component ───
 export default function Home() {
-  const navigate = useNavigate();
-  const [authReady, setAuthReady] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<TraderProfile | null>(null);
-  const [matches, setMatches] = useState<TradeMatch[]>([]);
-  const [trending, setTrending] = useState<TrendingItem[]>([]);
-  const [notifications, setNotifications] = useState<ActivityNotification[]>([]);
   const [profileLoading, setProfileLoading] = useState(true);
+
+  const [matches, setMatches] = useState<TradeMatch[]>([]);
   const [matchesLoading, setMatchesLoading] = useState(true);
+
+  const [trending, setTrending] = useState<TrendingItem[]>([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
-  const [notificationsLoading, setNotificationsLoading] = useState(true);
-  const [homeError, setHomeError] = useState<string | null>(null);
+
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifLoading, setNotifLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+
   const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [claimingDaily, setClaimingDaily] = useState(false);
 
+  // ── Get current user ──
   useEffect(() => {
-    let mounted = true;
-
-    const syncAuth = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!mounted) return;
+    supabase.auth.getUser().then(({ data }) => {
       setUserId(data.user?.id ?? null);
-      setAuthReady(true);
-    };
-
-    void syncAuth();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!mounted) return;
-      setUserId(session?.user?.id ?? null);
-      setAuthReady(true);
     });
-
-    return () => {
-      mounted = false;
-      authListener.subscription.unsubscribe();
-    };
   }, []);
 
+  // ── Fetch profile ──
   useEffect(() => {
-    let active = true;
+    if (!userId) return;
+    const fetchProfile = async () => {
+      const { data, error } = await supabase.from('traders').select('*').eq('id', userId).single();
+      if (!error && data) setProfile(data as TraderProfile);
+      setProfileLoading(false);
+    };
+    fetchProfile();
+  }, [userId]);
 
-    const loadTrending = async () => {
+  // ── Fetch trade matches ──
+  useEffect(() => {
+    if (!userId) return;
+    const fetchMatches = async () => {
+      setMatchesLoading(true);
+      const { data, error } = await supabase.rpc('get_trade_matches', { p_trader_id: userId });
+      if (!error && data) setMatches(data as TradeMatch[]);
+      setMatchesLoading(false);
+    };
+    fetchMatches();
+  }, [userId]);
+
+  // ── Fetch trending items ──
+  useEffect(() => {
+    const fetchTrending = async () => {
       setTrendingLoading(true);
-      const { data, error } = await supabase
-        .from('items')
-        .select('id, name, rarity, character, demand_score, image_url, thumbnail_url')
-        .order('demand_score', { ascending: false })
-        .limit(8);
-
-      if (!active) return;
-
-      if (error) {
-        setHomeError(error.message);
-        setTrending([]);
-      } else {
-        setTrending((data ?? []) as TrendingItem[]);
-      }
-
+      const { data, error } = await supabase.from('items').select('*').order('demand_score', { ascending: false }).limit(5);
+      if (!error && data) setTrending(data as TrendingItem[]);
       setTrendingLoading(false);
     };
-
-    void loadTrending();
-
-    return () => {
-      active = false;
-    };
+    fetchTrending();
   }, []);
 
+  // ── Fetch notifications ──
   useEffect(() => {
-    let active = true;
-
-    const clearPrivateSections = () => {
-      setProfile(null);
-      setMatches([]);
-      setNotifications([]);
-      setProfileLoading(false);
-      setMatchesLoading(false);
-      setNotificationsLoading(false);
+    if (!userId) { setNotifLoading(false); return; }
+    const fetchNotifs = async () => {
+      setNotifLoading(true);
+      const { data, error } = await supabase.from('notifications').select('*').eq('trader_id', userId).order('created_at', { ascending: false }).limit(5);
+      if (!error && data) { setNotifications(data as Notification[]); setUnreadCount(data.filter((n: Notification) => !n.is_read).length); }
+      setNotifLoading(false);
     };
+    fetchNotifs();
+  }, [userId]);
 
-    if (!authReady) return;
+  // ── Update status ──
+  const updateStatus = useCallback(async (newStatus: keyof typeof STATUS_CONFIG) => {
+    if (!userId || updatingStatus) return;
+    setUpdatingStatus(true);
+    const { error } = await supabase.from('traders').update({ current_status: newStatus }).eq('id', userId);
+    if (!error) setProfile((prev) => (prev ? { ...prev, current_status: newStatus } : prev));
+    setUpdatingStatus(false);
+  }, [userId, updatingStatus]);
 
-    if (!userId) {
-      clearPrivateSections();
-      return;
-    }
-
-    const loadPrivateData = async () => {
-      setProfileLoading(true);
-      setMatchesLoading(true);
-      setNotificationsLoading(true);
-      setHomeError(null);
-
-      const [profileResult, matchResult, notificationResult] = await Promise.all([
-        supabase
-          .from('traders')
-          .select(
-            'id, username, display_name, avatar_url, current_status, reputation_score, total_trades, dream_mints, login_streak, can_claim_today'
-          )
-          .eq('id', userId)
-          .maybeSingle(),
-        supabase.rpc('get_trade_matches', { p_trader_id: userId }),
-        supabase
-          .from('notifications')
-          .select('id, type, title, message, is_read, created_at')
-          .eq('trader_id', userId)
-          .order('created_at', { ascending: false })
-          .limit(5),
-      ]);
-
-      if (!active) return;
-
-      if (profileResult.error) {
-        setHomeError(profileResult.error.message);
-      }
-
-      if (matchResult.error) {
-        setHomeError((previous) => previous ?? matchResult.error?.message ?? null);
-      }
-
-      if (notificationResult.error) {
-        setHomeError((previous) => previous ?? notificationResult.error?.message ?? null);
-      }
-
-      setProfile((profileResult.data as TraderProfile | null) ?? null);
-      setMatches((matchResult.data ?? []) as TradeMatch[]);
-      setNotifications((notificationResult.data ?? []) as ActivityNotification[]);
-      setProfileLoading(false);
-      setMatchesLoading(false);
-      setNotificationsLoading(false);
-    };
-
-    void loadPrivateData();
-
-    return () => {
-      active = false;
-    };
-  }, [authReady, userId]);
-
-  const unreadCount = useMemo(
-    () => notifications.filter((notification) => !notification.is_read).length,
-    [notifications]
-  );
-
-  const updateStatus = useCallback(
-    async (nextStatus: TraderStatus) => {
-      if (!userId || !profile || updatingStatus || profile.current_status === nextStatus) return;
-
-      setUpdatingStatus(true);
-      const { error } = await supabase
-        .from('traders')
-        .update({ current_status: nextStatus })
-        .eq('id', userId);
-
-      if (!error) {
-        setProfile((previous) =>
-          previous ? { ...previous, current_status: nextStatus } : previous
-        );
-      } else {
-        setHomeError(error.message);
-      }
-
-      setUpdatingStatus(false);
-    },
-    [profile, updatingStatus, userId]
-  );
-
+  // ── Claim daily login reward ──
   const claimDaily = useCallback(async () => {
-    if (!userId || !profile || !profile.can_claim_today || claimingDaily) return;
+    if (!userId || !profile?.can_claim_today) return;
+    const newStreak = profile.login_streak + 1;
+    const { error } = await supabase.from('traders').update({ dream_mints: profile.dream_mints + 10, login_streak: newStreak, last_claim_date: new Date().toISOString().split('T')[0], can_claim_today: false }).eq('id', userId);
+    if (!error) setProfile((prev) => prev ? { ...prev, dream_mints: prev.dream_mints + 10, login_streak: newStreak, can_claim_today: false } : prev);
+  }, [userId, profile]);
 
-    setClaimingDaily(true);
-    const nextMints = profile.dream_mints + 10;
-    const nextStreak = profile.login_streak + 1;
-    const today = new Date().toISOString().split('T')[0];
-
-    const { error } = await supabase
-      .from('traders')
-      .update({
-        dream_mints: nextMints,
-        login_streak: nextStreak,
-        last_claim_date: today,
-        can_claim_today: false,
-      })
-      .eq('id', userId);
-
-    if (!error) {
-      setProfile((previous) =>
-        previous
-          ? {
-              ...previous,
-              dream_mints: nextMints,
-              login_streak: nextStreak,
-              can_claim_today: false,
-            }
-          : previous
-      );
-    } else {
-      setHomeError(error.message);
-    }
-
-    setClaimingDaily(false);
-  }, [claimingDaily, profile, userId]);
-
-  const welcomeName = profile?.display_name || profile?.username || 'Dreamer';
   const currentStatus = profile?.current_status ?? 'sunny';
-  const kumoMood = currentStatus === 'dreaming' ? 'dreaming' : matches.length > 0 ? 'welcome' : 'thinking';
+  const statusCfg = STATUS_CONFIG[currentStatus];
+  const StatusIcon = statusCfg.icon;
 
   return (
-    <Layout>
-      <div className="space-y-6 pt-2">
-        <motion.section
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={cn(
-            'relative overflow-hidden rounded-[32px] border border-[rgba(165,214,200,0.18)]',
-            'bg-white/[0.78] p-5 shadow-[0_18px_40px_rgba(46,42,40,0.06)]'
-          )}
-        >
-          <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[rgba(165,214,200,0.14)] blur-3xl" />
-
-          <div className="relative flex items-start gap-4">
-            <div className="shrink-0 rounded-[24px] bg-[linear-gradient(135deg,#E9FAF4,#F8EEFF)] p-3">
-              <KumoMascot mood={kumoMood} />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <p className="text-[12px] uppercase tracking-[0.1em] text-[#2E2A2899]">Teacup Kumoru</p>
-              {profileLoading ? (
-                <div className="mt-2 h-7 w-40 animate-pulse rounded-full bg-[#F3F0E8]" />
-              ) : (
-                <h2 className="mt-1 text-[24px] font-bold font-display text-[#2E2A28]">
-                  {userId ? `Welcome back, ${welcomeName}` : 'Welcome to KumoMint'}
-                </h2>
-              )}
-              <p className="mt-1 text-[13px] text-[#2E2A2899]">
-                {userId
-                  ? `Reputation ${profile?.reputation_score ?? 100} • ${profile?.total_trades ?? 0} trades completed`
-                  : 'Sign in to unlock live matches, activity, and your wardrobe.'}
-              </p>
-            </div>
-          </div>
-
-          {homeError ? (
-            <div className="relative mt-4 rounded-2xl border border-[rgba(239,154,154,0.35)] bg-[rgba(255,235,238,0.8)] px-4 py-3 text-[13px] text-[#9A3F52]">
-              {homeError}
-            </div>
-          ) : null}
-
-          {userId ? (
-            <>
-              <div className="relative mt-4 flex flex-wrap gap-2">
-                {(Object.keys(STATUS_CONFIG) as TraderStatus[]).map((status) => {
-                  const config = STATUS_CONFIG[status];
-                  const Icon = config.icon;
-                  const active = currentStatus === status;
-
-                  return (
-                    <button
-                      key={status}
-                      onClick={() => void updateStatus(status)}
-                      disabled={updatingStatus}
-                      className={cn(
-                        'inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[12px] font-semibold transition-all',
-                        active
-                          ? `${config.bgClass} ring-2 ${config.ringClass} text-[#2E2A28]`
-                          : 'bg-white/[0.8] text-[#2E2A2899] border border-[rgba(165,214,200,0.16)]',
-                        updatingStatus && active && 'opacity-70'
-                      )}
-                    >
-                      {updatingStatus && active ? (
-                        <Loader2 size={13} className="animate-spin" style={{ color: config.color }} />
-                      ) : (
-                        <Icon size={13} style={{ color: active ? config.color : undefined }} />
-                      )}
-                      {config.label}
-                    </button>
-                  );
+    <div className="min-h-screen bg-gradient-to-b from-[#F0F9F6] to-[#E8F4F8] pb-24">
+      <div className="max-w-3xl mx-auto px-4 pt-6 space-y-6">
+        {/* ═══════ WELCOME HEADER ═══════ */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className={cn('relative overflow-hidden rounded-3xl p-6', 'bg-white/70 backdrop-blur-xl border border-white/50', 'shadow-[0_4px_24px_rgba(0,0,0,0.06)]')}>
+          <div className="absolute top-0 right-0 w-40 h-40 bg-[#7ED7C1]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="relative flex items-center gap-4">
+            <div className="shrink-0"><KumoMascot size={72} /></div>
+            <div className="flex-1 min-w-0">
+              {profileLoading ? <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-2" /> : <h1 className="text-xl font-bold text-gray-800 truncate" style={{ fontFamily: 'Quicksand, sans-serif' }}>Hi, {profile?.display_name || profile?.username || 'Dreamer'}!</h1>}
+              <p className="text-sm text-gray-500 mt-0.5">{profileLoading ? 'Loading your cloud...' : `Reputation ${profile?.reputation_score ?? 100} · ${profile?.total_trades ?? 0} trades`}</p>
+              <div className="flex gap-2 mt-3">
+                {(Object.keys(STATUS_CONFIG) as Array<keyof typeof STATUS_CONFIG>).map((s) => {
+                  const cfg = STATUS_CONFIG[s]; const Icon = cfg.icon; const isActive = currentStatus === s;
+                  return <button key={s} onClick={() => updateStatus(s)} disabled={updatingStatus} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all', isActive ? `${cfg.bg} ${cfg.ring} ring-2 text-gray-700` : 'bg-black/5 text-gray-400 hover:bg-black/10')}>{updatingStatus && isActive ? <Loader2 className="w-3 h-3 animate-spin" style={{ color: cfg.color }} /> : <Icon className="w-3 h-3" style={{ color: isActive ? cfg.color : undefined }} />}<span className="capitalize">{cfg.label}</span></button>;
                 })}
               </div>
-
-              {profile?.can_claim_today ? (
-                <button
-                  onClick={() => void claimDaily()}
-                  disabled={claimingDaily}
-                  className="relative mt-4 w-full rounded-[22px] bg-[linear-gradient(135deg,#A5D6C8,#82C9B2)] px-4 py-3 text-[14px] font-semibold text-[#2E2A28] shadow-[0_14px_28px_rgba(165,214,200,0.35)] disabled:opacity-60"
-                >
-                  {claimingDaily ? 'Claiming reward...' : 'Claim Daily Reward (+10 Dream Mints)'}
-                </button>
-              ) : null}
-            </>
-          ) : (
-            <div className="relative mt-4 flex gap-3">
-              <button
-                onClick={() => navigate('/login')}
-                className="rounded-[20px] bg-[#A5D6C8] px-4 py-3 text-[14px] font-semibold text-[#2E2A28]"
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => navigate('/register')}
-                className="rounded-[20px] border border-[rgba(165,214,200,0.2)] bg-white/[0.8] px-4 py-3 text-[14px] font-semibold text-[#2E2A28]"
-              >
-                Create Account
-              </button>
             </div>
-          )}
-        </motion.section>
-
-        <section className="grid grid-cols-3 gap-3">
-          <StatCard label="Dream Mints" value={profile?.dream_mints ?? 0} icon={Cloud} accentClass="bg-[rgba(165,214,200,0.18)]" />
-          <StatCard label="Day Streak" value={profile?.login_streak ?? 0} icon={Zap} accentClass="bg-[rgba(255,224,130,0.22)]" />
-          <StatCard label="Matches" value={matches.length} icon={Heart} accentClass="bg-[rgba(209,163,255,0.18)]" />
-        </section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-[18px] font-bold font-display text-[#2E2A28]">Kumo Found Matches</h3>
-            <button
-              onClick={() => navigate('/offers')}
-              className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#4E927E]"
-            >
-              Offers <ChevronRight size={14} />
-            </button>
           </div>
-
-          {matchesLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 2 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-28 animate-pulse rounded-[24px] border border-[rgba(165,214,200,0.14)] bg-white/[0.58]"
-                />
-              ))}
-            </div>
-          ) : !userId ? (
-            <div className="rounded-[24px] border border-[rgba(165,214,200,0.14)] bg-white/[0.74] px-5 py-8 text-center">
-              <Heart size={22} className="mx-auto mb-3 text-[#D1A3FF]" />
-              <p className="text-[14px] font-semibold text-[#2E2A28]">Sign in to see trade matches.</p>
-            </div>
-          ) : matches.length === 0 ? (
-            <div className="rounded-[24px] border border-[rgba(165,214,200,0.14)] bg-white/[0.74] px-5 py-8 text-center">
-              <Search size={22} className="mx-auto mb-3 text-[#A5D6C8]" />
-              <p className="text-[14px] font-semibold text-[#2E2A28]">No live matches yet.</p>
-              <p className="mt-1 text-[12px] text-[#2E2A2899]">
-                Add wishlist items and inventory duplicates to unlock matches.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {matches.map((match) => {
-                const compatibility = COMPATIBILITY_CONFIG[match.method_compatibility];
-
-                return (
-                  <button
-                    key={match.matched_trader_id}
-                    onClick={() => navigate(`/profile/${match.matched_trader_id}`)}
-                    className="w-full rounded-[24px] border border-[rgba(165,214,200,0.14)] bg-white/[0.74] p-4 text-left shadow-[0_10px_24px_rgba(46,42,40,0.04)]"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#E9FAF4,#F8EEFF)] text-[16px] font-semibold text-[#2E2A28]">
-                        {match.matched_avatar_url ? (
-                          <img
-                            src={match.matched_avatar_url}
-                            alt={match.matched_username}
-                            className="h-full w-full rounded-full object-cover"
-                          />
-                        ) : (
-                          match.matched_username.charAt(0).toUpperCase()
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <h4 className="truncate text-[14px] font-semibold text-[#2E2A28]">
-                            {match.matched_username}
-                          </h4>
-                          <span
-                            className={cn(
-                              'rounded-full border px-2 py-1 text-[10px] font-semibold',
-                              compatibility.className
-                            )}
-                          >
-                            {compatibility.label}
-                          </span>
-                        </div>
-
-                        <div className="mt-1 inline-flex items-center gap-1.5 text-[12px] text-[#2E2A2899]">
-                          <Scale size={12} />
-                          Match score {match.match_score}
-                        </div>
-
-                        {match.their_wanted_items && match.their_wanted_items.length > 0 ? (
-                          <div className="mt-3">
-                            <p className="mb-1 text-[11px] text-[#2E2A2899]">They have items you want</p>
-                            <div className="flex flex-wrap gap-2">
-                              {match.their_wanted_items.slice(0, 3).map((item) => (
-                                <span
-                                  key={item.item_id}
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(165,214,200,0.14)] bg-white/[0.85] px-2 py-1 text-[11px] text-[#2E2A28]"
-                                >
-                                  <RarityBadge tier={rarityMap[item.rarity] ?? 'Moon'} className="!px-1.5 !py-0 !text-[9px]" />
-                                  <span className="max-w-[90px] truncate">{item.name}</span>
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <ChevronRight size={16} className="mt-1 shrink-0 text-[#2E2A2866]" />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-[18px] font-bold font-display text-[#2E2A28]">Trending Items</h3>
-            <button
-              onClick={() => navigate('/catalog')}
-              className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#4E927E]"
-            >
-              Catalog <ChevronRight size={14} />
-            </button>
+          <div className="relative flex gap-3 mt-5">
+            {[{ label: 'Dream Mints', value: profile?.dream_mints ?? 0, icon: Cloud, color: '#7ED7C1' }, { label: 'Day Streak', value: profile?.login_streak ?? 0, icon: Zap, color: '#F1C40F' }, { label: 'Matches', value: matches.length, icon: Heart, color: '#9B59B6' }].map((s) => (
+              <div key={s.label} className={cn('flex-1 rounded-2xl p-3 text-center border', s.color === '#7ED7C1' ? 'bg-gradient-to-br from-[#7ED7C1]/20 to-[#7ED7C1]/5 border-[#7ED7C1]/20' : s.color === '#F1C40F' ? 'bg-gradient-to-br from-amber-50 to-amber-50/50 border-amber-200/50' : 'bg-gradient-to-br from-purple-50 to-purple-50/50 border-purple-200/50')}><s.icon className="w-5 h-5 mx-auto mb-1" style={{ color: s.color }} /><p className="text-lg font-bold text-gray-800">{s.value}</p><p className="text-[10px] text-gray-500 uppercase tracking-wide">{s.label}</p></div>
+            ))}
           </div>
+          {profile?.can_claim_today && <motion.button initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} onClick={claimDaily} className="relative mt-4 w-full py-2.5 rounded-2xl bg-gradient-to-r from-[#7ED7C1] to-[#5BBAA3] text-white text-sm font-semibold shadow-lg shadow-[#7ED7C1]/30 hover:shadow-xl hover:shadow-[#7ED7C1]/40 transition-all">Claim Daily Login Reward (+10 Dream Mints)</motion.button>}
+        </motion.div>
 
-          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-            {trendingLoading
-              ? Array.from({ length: 4 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="h-44 w-36 shrink-0 animate-pulse rounded-[24px] border border-[rgba(165,214,200,0.14)] bg-white/[0.58]"
-                  />
-                ))
-              : trending.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => navigate('/catalog')}
-                    className="w-36 shrink-0 overflow-hidden rounded-[24px] border border-[rgba(165,214,200,0.14)] bg-white/[0.74] text-left shadow-[0_10px_24px_rgba(46,42,40,0.04)]"
-                  >
-                    <div
-                      className={cn(
-                        'relative h-28 overflow-hidden',
-                        item.rarity === 'N'
-                          ? 'bg-[linear-gradient(135deg,#E8ECEE,#C9D0D5)]'
-                          : item.rarity === 'R'
-                            ? 'bg-[linear-gradient(135deg,#FBE9CC,#FFE082)]'
-                            : item.rarity === 'S'
-                              ? 'bg-[linear-gradient(135deg,#E6DCF9,#D1A3FF)]'
-                              : 'bg-[linear-gradient(135deg,#FFD6E5,#E6C5FF)]'
-                      )}
-                    >
-                      {item.thumbnail_url || item.image_url ? (
-                        <img
-                          src={item.thumbnail_url || item.image_url || ''}
-                          alt={item.name}
-                          className="h-full w-full object-cover"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <Package size={24} className="text-white/50" />
-                        </div>
-                      )}
-
-                      <div className="absolute left-2 top-2">
-                        <RarityBadge tier={rarityMap[item.rarity] ?? 'Moon'} className="!px-1.5 !py-0.5 !text-[9px]" />
-                      </div>
-
-                      <div className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/25 px-2 py-1 text-[10px] font-semibold text-white">
-                        <TrendingUp size={10} />
-                        {item.demand_score ?? 0}
-                      </div>
-                    </div>
-
-                    <div className="p-3">
-                      <p className="line-clamp-1 text-[13px] font-semibold text-[#2E2A28]">{item.name}</p>
-                      <p className="mt-1 text-[11px] text-[#2E2A2899]">{item.character || 'HKDV Item'}</p>
-                    </div>
-                  </button>
-                ))}
+        {/* ═══════ TRADE MATCHES ═══════ */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-gray-800" style={{ fontFamily: 'Quicksand, sans-serif' }}>Kumo Found Matches</h2>
+            {matchesLoading ? <Loader2 className="w-4 h-4 text-gray-300 animate-spin" /> : <span className="text-xs text-gray-400">{matches.length} potential trades</span>}
           </div>
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-[18px] font-bold font-display text-[#2E2A28]">Recent Activity</h3>
-            {unreadCount > 0 ? (
-              <button
-                onClick={() => navigate('/notifications')}
-                className="rounded-full bg-[rgba(255,181,197,0.18)] px-2.5 py-1 text-[11px] font-semibold text-[#B96565]"
-              >
-                {unreadCount} new
-              </button>
-            ) : null}
+          {matchesLoading && <div className="flex items-center justify-center py-10 bg-white/50 rounded-2xl backdrop-blur-sm"><Loader2 className="w-6 h-6 text-[#7ED7C1] animate-spin mr-2" /><span className="text-sm text-gray-500">Kumo is searching the clouds...</span></div>}
+          {!matchesLoading && matches.length === 0 && <div className="flex flex-col items-center justify-center py-10 bg-white/50 rounded-2xl backdrop-blur-sm border border-white/40"><KumoMascot size={60} /><p className="text-sm text-gray-500 font-medium mt-3">No matches yet</p><p className="text-xs text-gray-400 mt-1 text-center px-8">Add more items to your wishlist and inventory to find trading partners!</p><a href="/catalog" className="mt-3 px-4 py-2 rounded-xl bg-[#7ED7C1] text-white text-xs font-medium hover:bg-[#5BBAA3] transition-all">Browse Catalog</a></div>}
+          {!matchesLoading && matches.length > 0 && matches.map((match, i) => {
+            const compat = COMPATIBILITY_LABEL[match.method_compatibility];
+            return <motion.div key={match.matched_trader_id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className={cn('mb-3 p-4 rounded-2xl border backdrop-blur-sm bg-white/60 border-white/50 hover:bg-white/80 transition-all cursor-pointer')} onClick={() => {}}>
+              <div className="flex items-start gap-3">
+                <div className="shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-[#7ED7C1]/30 to-[#B4E7FF]/30 flex items-center justify-center text-lg">{match.matched_avatar_url ? <img src={match.matched_avatar_url} alt="" className="w-full h-full rounded-full object-cover" /> : <span>{match.matched_username.charAt(0).toUpperCase()}</span>}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between"><h3 className="font-semibold text-gray-800 text-sm truncate">{match.matched_username}</h3><span className={cn('text-[10px] px-2 py-0.5 rounded-full border font-medium', compat.bg, compat.color, compat.border)}>{compat.text}</span></div>
+                  <div className="flex items-center gap-1 mt-1"><Scale className="w-3 h-3 text-gray-400" /><span className="text-xs text-gray-500">Match score: {match.match_score}</span></div>
+                  {match.their_wanted_items && match.their_wanted_items.length > 0 && <div className="mt-2"><p className="text-[10px] text-gray-400 mb-1">They have items you want:</p><div className="flex gap-1 flex-wrap">{match.their_wanted_items.slice(0, 3).map(item => <span key={item.item_id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/80 border border-white/50 text-[10px] text-gray-600"><RarityBadge rarity={item.rarity as any} size="xs" /><span className="truncate max-w-[80px]">{item.name}</span></span>)}{match.their_wanted_items.length > 3 && <span className="text-[10px] text-gray-400 px-1">+{match.their_wanted_items.length - 3}</span>}</div></div>}
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-300 shrink-0 self-center" />
+              </div>
+            </motion.div>;
+          })}
+        </motion.div>
+                {/* ═══════ TRENDING ITEMS ═══════ */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-gray-800" style={{ fontFamily: 'Quicksand, sans-serif' }}>Trending Items</h2>
+            <a href="/catalog" className="text-xs text-[#5BBAA3] font-medium flex items-center gap-0.5 hover:underline">View all <ArrowRight className="w-3 h-3" /></a>
           </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x">
+            {trendingLoading && Array.from({ length: 4 }).map((_, i) => <div key={i} className="shrink-0 w-36 h-44 rounded-2xl bg-white/40 animate-pulse snap-start" />)}
+            {!trendingLoading && trending.map((item) => (
+              <a key={item.id} href={`/catalog?item=${item.id}`} className={cn('shrink-0 w-36 rounded-2xl overflow-hidden snap-start bg-white/70 backdrop-blur-md border border-white/40 shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-all duration-300')}>
+                <div className={cn('relative h-28 overflow-hidden bg-gradient-to-br', item.rarity === 'N' ? 'from-gray-200 to-gray-300' : item.rarity === 'R' ? 'from-amber-100 to-amber-200' : item.rarity === 'S' ? 'from-violet-200 to-violet-300' : 'from-pink-200 via-rose-200 to-fuchsia-200')}>
+                  {item.thumbnail_url || item.image_url ? <img src={item.thumbnail_url || item.image_url!} alt={item.name} className="w-full h-full object-cover" loading="lazy" /> : <div className="w-full h-full flex items-center justify-center"><Package className="w-6 h-6 text-white/40" /></div>}
+                  <div className="absolute top-2 right-2"><RarityBadge rarity={item.rarity} size="xs" /></div>
+                  <div className="absolute bottom-2 left-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/30 backdrop-blur-sm"><TrendingUp className="w-3 h-3 text-white" /><span className="text-[10px] text-white font-medium">{item.demand_score}</span></div>
+                </div>
+                <div className="p-2.5"><p className="text-xs font-semibold text-gray-800 line-clamp-1">{item.name}</p><p className="text-[10px] text-gray-400 mt-0.5">{item.character}</p></div>
+              </a>
+            ))}
+          </div>
+        </motion.div>
 
-          {notificationsLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-16 animate-pulse rounded-[24px] border border-[rgba(165,214,200,0.14)] bg-white/[0.58]"
-                />
-              ))}
+        {/* ═══════ RECENT ACTIVITY ═══════ */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800" style={{ fontFamily: 'Quicksand, sans-serif' }}>Recent Activity</h2>
             </div>
-          ) : !userId ? (
-            <div className="rounded-[24px] border border-[rgba(165,214,200,0.14)] bg-white/[0.74] px-5 py-8 text-center">
-              <Bell size={22} className="mx-auto mb-3 text-[#A5D6C8]" />
-              <p className="text-[14px] font-semibold text-[#2E2A28]">Sign in to see your activity feed.</p>
-            </div>
-          ) : notifications.length === 0 ? (
-            <div className="rounded-[24px] border border-[rgba(165,214,200,0.14)] bg-white/[0.74] px-5 py-8 text-center">
-              <Bell size={22} className="mx-auto mb-3 text-[#A5D6C8]" />
-              <p className="text-[14px] font-semibold text-[#2E2A28]">No recent activity.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {notifications.map((notification) => {
-                const Icon = notificationIcon(notification.type);
-
-                return (
-                  <button
-                    key={notification.id}
-                    onClick={() => navigate('/notifications')}
-                    className={cn(
-                      'flex w-full items-center gap-3 rounded-[24px] border px-4 py-3 text-left shadow-[0_10px_24px_rgba(46,42,40,0.04)]',
-                      notification.is_read
-                        ? 'border-[rgba(165,214,200,0.12)] bg-white/[0.66]'
-                        : 'border-[rgba(165,214,200,0.22)] bg-white/[0.82]'
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-                        notification.is_read
-                          ? 'bg-[#F3F0E8] text-[#2E2A2866]'
-                          : 'bg-[rgba(165,214,200,0.18)] text-[#4E927E]'
-                      )}
-                    >
-                      <Icon size={16} />
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className={cn(
-                          'truncate text-[13px]',
-                          notification.is_read ? 'text-[#2E2A2899]' : 'font-semibold text-[#2E2A28]'
-                        )}
-                      >
-                        {notification.title}
-                      </p>
-                      {notification.message ? (
-                        <p className="mt-0.5 truncate text-[11px] text-[#2E2A2899]">
-                          {notification.message}
-                        </p>
-                      ) : null}
-                    </div>
-
-                    <span className="shrink-0 text-[11px] text-[#2E2A2866]">
-                      {formatRelativeDate(notification.created_at)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </motion.section>
+            {unreadCount > 0 && <span className="text-xs bg-red-100 text-red-500 px-2 py-0.5 rounded-full font-medium">{unreadCount} new</span>}
+          </div>
+          <div className="space-y-2">
+            {notifLoading && Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-14 rounded-2xl bg-white/40 animate-pulse" />)}
+            {!notifLoading && notifications.length === 0 && <div className="text-center py-6 bg-white/40 rounded-2xl backdrop-blur-sm"><Bell className="w-6 h-6 text-gray-300 mx-auto mb-2" /><p className="text-sm text-gray-400">No recent activity</p></div>}
+            {!notifLoading && notifications.map((notif) => {
+              const cfg = NOTIF_CONFIG[notif.type] || NOTIF_CONFIG.system;
+              return <div key={notif.id} className={cn('flex items-center gap-3 p-3 rounded-2xl border backdrop-blur-sm transition-all cursor-pointer', notif.is_read ? 'bg-white/40 border-white/30' : 'bg-white/70 border-[#7ED7C1]/20 shadow-sm')} onClick={() => {}}>
+                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', notif.is_read ? 'bg-gray-100 text-gray-400' : 'bg-[#7ED7C1]/20 text-[#5BBAA3]')}><NotifIcon type={notif.type} /></div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2"><span className={cn('text-xs font-bold', notif.is_read ? 'text-gray-500' : 'text-gray-800')}>{cfg.label}</span><span className="text-[10px] text-gray-300">· {formatTime(notif.created_at)}</span></div>
+                  <h4 className={cn('text-sm mt-0.5', notif.is_read ? 'text-gray-500' : 'text-gray-800 font-medium')}>{notif.title}</h4>
+                  {notif.message && <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{notif.message}</p>}
+                </div>
+                <span className="text-[10px] text-gray-300 shrink-0">{getDateGroup(notif.created_at)}</span>
+              </div>;
+            })}
+          </div>
+        </motion.div>
       </div>
-    </Layout>
+    </div>
   );
 }
