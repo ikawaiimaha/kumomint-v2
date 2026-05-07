@@ -1,7 +1,7 @@
 import { useState, useEffect, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bell, Sun, Moon, ArrowLeft, Gamepad2, Wind, HelpCircle } from 'lucide-react';
+import { Bell, Sun, Moon, ArrowLeft } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getTraderProfile, supabase } from '../lib/supabase';
 import Navbar from './Navbar';
@@ -14,14 +14,6 @@ interface LayoutProps {
   showNav?: boolean;
   rightAction?: ReactNode;
 }
-
-// Safety config for the status buttons
-const STATUS_CONFIG = {
-  sunny:    { label: 'Sunny',    icon: Sun,      color: '#F1C40F', bgClass: 'bg-[#FFF9E6]', ringClass: 'ring-[#F1C40F]' },
-  playing:  { label: 'Playing',  icon: Gamepad2, color: '#3498DB', bgClass: 'bg-[#EBF5FB]', ringClass: 'ring-[#3498DB]' },
-  drifting: { label: 'Drifting', icon: Wind,     color: '#E67E22', bgClass: 'bg-[#FDEDEC]', ringClass: 'ring-[#E67E22]' },
-  dreaming: { label: 'Dreaming', icon: Moon,     color: '#9B59B6', bgClass: 'bg-[#F4ECF7]', ringClass: 'ring-[#9B59B6]' },
-};
 
 export default function Layout({
   children,
@@ -46,10 +38,12 @@ export default function Layout({
       if (!isMounted) return;
       if (!user) { setUsername('Dreamer'); return; }
 
-      const fallbackUsername = user.user_metadata.username || user.email?.split('@')[0] || 'Dreamer';
+      const fallbackUsername = user.user_metadata?.username || user.email?.split('@')[0] || 'Dreamer';
       const { data } = await getTraderProfile(user.id);
-      if (!isMounted) return;
-      setUsername(data?.display_name || data?.username || fallbackUsername);
+      
+      if (isMounted) {
+        setUsername(data?.display_name || data?.username || fallbackUsername);
+      }
     };
 
     syncUser();
