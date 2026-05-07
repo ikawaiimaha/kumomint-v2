@@ -20,10 +20,12 @@ import {
   Ticket,
   Wind,
   X,
+  ArrowRightLeft
 } from 'lucide-react';
 import Layout from '../components/Layout';
 import BottomSheet from '../components/BottomSheet';
 import RarityBadge from '../components/RarityBadge';
+import CreateOfferModal from '../components/CreateOfferModal';
 import { supabase } from '../lib/supabase';
 import { cn } from '../lib/utils';
 
@@ -270,7 +272,7 @@ function PreviewCard({
         {item.thumbnailUrl || item.imageUrl ? (
           <img
             src={item.thumbnailUrl || item.imageUrl || ''}
-            alt={item.name}
+            alt=""
             className="h-full w-full rounded-[18px] object-cover"
             loading="lazy"
           />
@@ -281,7 +283,7 @@ function PreviewCard({
         )}
 
         <div className="absolute left-2 top-2">
-          <RarityBadge tier={item.rarityTier} className="!px-1.5 !py-0 !text-[9px]" />
+          <RarityBadge tier={item.rarityTier as any} className="!px-1.5 !py-0 !text-[9px]" />
         </div>
 
         {typeof quantity === 'number' ? (
@@ -311,7 +313,7 @@ function PreviewCard({
         ) : null}
       </div>
 
-      <p className="mt-3 line-clamp-2 text-[12px] font-semibold text-[#2E2A28]">{item.name}</p>
+      <p className="mt-3 line-clamp-1 text-[12px] font-semibold text-[#2E2A28]">{item.name}</p>
     </div>
   );
 }
@@ -334,6 +336,9 @@ export default function ProfilePage() {
   const [editDisplayName, setEditDisplayName] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+  
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -635,8 +640,8 @@ export default function ProfilePage() {
                   {profile.avatar_url ? (
                     <img
                       src={profile.avatar_url}
-                      alt={profile.display_name || profile.username}
-                      className="h-full w-full object-cover"
+                      alt=""
+                      className="h-full w-full object-cover block"
                     />
                   ) : (
                     (profile.display_name || profile.username).charAt(0).toUpperCase()
@@ -651,10 +656,10 @@ export default function ProfilePage() {
               </div>
 
               <div className="min-w-0">
-                <h2 className="text-[24px] font-bold font-display text-[#2E2A28]">
+                <h2 className="text-[24px] font-bold font-display text-[#2E2A28] leading-tight truncate">
                   {profile.display_name || profile.username}
                 </h2>
-                <p className="mt-1 text-[13px] text-[#2E2A2899]">@{profile.username}</p>
+                <p className="mt-1 text-[13px] text-[#2E2A2899] truncate">@{profile.username}</p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <span className={cn('inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold', status.pillClass)}>
                     <StatusIcon size={13} />
@@ -727,6 +732,22 @@ export default function ProfilePage() {
             </div>
           ) : null}
         </motion.section>
+
+        {/* --- TRADE BUTTON (ONLY SHOWS ON OTHER PEOPLE'S PROFILES) --- */}
+        {!isMyProfile && (
+          <div className="bg-[#E9FAF4]/30 rounded-[24px] p-6 border border-[rgba(165,214,200,0.3)] text-center">
+            <p className="text-[13px] text-[#2E2A2899] mb-4">
+              Found an item you want in {profile.display_name || profile.username}'s wardrobe?
+            </p>
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="w-full flex items-center justify-center gap-2 bg-[linear-gradient(135deg,#A5D6C8,#82C9B2)] text-[#2E2A28] py-4 rounded-[20px] font-bold text-[15px] shadow-[0_14px_28px_rgba(165,214,200,0.35)] hover:scale-[1.02] transition-transform"
+            >
+              <ArrowRightLeft size={18} />
+              Propose Trade
+            </button>
+          </div>
+        )}
 
         <section className="grid grid-cols-2 gap-3">
           <div className="rounded-[24px] bg-white/[0.76] border border-[rgba(165,214,200,0.16)] px-4 py-4">
@@ -879,6 +900,11 @@ export default function ProfilePage() {
           </div>
         </div>
       </BottomSheet>
+
+      {/* The Offer Modal */}
+      {isModalOpen && (
+        <CreateOfferModal onClose={() => setIsModalOpen(false)} />
+      )}
     </Layout>
   );
 }
