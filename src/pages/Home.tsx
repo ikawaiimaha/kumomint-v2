@@ -172,30 +172,8 @@ function notificationIcon(type: string) {
   }
 }
 
-function KumoMascot({ mood = 'welcome', size = 78 }: { mood?: 'welcome' | 'dreaming' | 'thinking'; size?: number }) {
-  const eyeY = mood === 'dreaming' ? 40 : 39;
-  const mouthPath =
-    mood === 'dreaming'
-      ? 'M33 49 Q40 53 47 49'
-      : mood === 'thinking'
-        ? 'M34 49 Q40 45 46 49'
-        : 'M32 49 Q40 56 48 49';
-
-  return (
-    <svg width={size} height={size * 0.86} viewBox="0 0 80 69" fill="none" aria-hidden="true">
-      <ellipse cx="40" cy="44" rx="28" ry="19" fill="#A5D6C8" />
-      <circle cx="23" cy="39" r="13" fill="#A5D6C8" />
-      <circle cx="57" cy="39" r="13" fill="#A5D6C8" />
-      <circle cx="32" cy="28" r="11.5" fill="#A5D6C8" />
-      <circle cx="48" cy="28" r="11.5" fill="#A5D6C8" />
-      <ellipse cx="40" cy="31" rx="13" ry="7" fill="white" fillOpacity="0.22" />
-      <circle cx="32" cy={eyeY} r="2.7" fill="#2E2A28" />
-      <circle cx="48" cy={eyeY} r="2.7" fill="#2E2A28" />
-      <circle cx="24" cy="47" r="4.5" fill="#FFB5C5" fillOpacity="0.45" />
-      <circle cx="56" cy="47" r="4.5" fill="#FFB5C5" fillOpacity="0.45" />
-      <path d={mouthPath} stroke="#2E2A28" strokeWidth="2.2" strokeLinecap="round" />
-    </svg>
-  );
+function KumoMascot({ mood = 'welcome', size = 80 }: { mood?: string; size?: number }) {
+  return <img src="/kumo-mascot.png" alt="Kumo" style={{ width: size, height: size }} className="object-contain" />;
 }
 
 function StatCard({
