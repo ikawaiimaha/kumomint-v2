@@ -55,7 +55,7 @@ export default function Layout({
 
   return (
     <div className="min-h-screen bg-[#FDFCF8] dark:bg-[#1A1816] transition-colors overflow-x-hidden">
-      <div className="max-w-[600px] mx-auto relative min-h-screen flex flex-col">
+      <div className="max-w-[600px] mx-auto relative min-h-screen flex flex-col overflow-x-hidden">
         {hasHeader && (
           <header className={cn(
             'sticky top-0 z-50 h-14 flex items-center justify-between px-4 transition-all',
