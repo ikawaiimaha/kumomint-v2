@@ -76,8 +76,8 @@ export default function Layout({
   };
 
   return (
-    <div className={cn('min-h-[100dvh] bg-[#FDFCF8] dark:bg-[#1A1816] transition-colors duration-300')}>
-      <div className="max-w-[600px] mx-auto relative">
+    <div className={cn('min-h-[100dvh] bg-[#FDFCF8] dark:bg-[#1A1816] transition-colors duration-300 overflow-x-hidden')}>
+      <div className="max-w-[600px] mx-auto relative overflow-x-hidden">
         <header className={cn(
           'sticky top-0 z-50 h-14 flex items-center justify-between px-4 transition-all duration-200',
           scrolled ? 'bg-white/80 dark:bg-[#1A1816]/80 backdrop-blur-xl border-b border-[rgba(165,214,200,0.1)]' : 'bg-transparent'
@@ -106,7 +106,7 @@ export default function Layout({
         </header>
 
         <motion.main 
-          className={cn('px-4 pb-24', showNav && 'pb-28')}
+          className={cn('px-4 pb-24 relative overflow-x-hidden', showNav && 'pb-28')}
           initial={{ opacity: 0, y: 12 }} 
           animate={{ opacity: 1, y: 0 }}
         >
