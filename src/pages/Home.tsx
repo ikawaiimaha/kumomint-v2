@@ -37,7 +37,7 @@ export default function Home() {
   const welcomeName = profile?.display_name || profile?.username || 'Dreamer';
 
   return (
-    <Layout title="" showNav={true}>
+    <Layout showNav={true}>
       <div className="space-y-6">
         {/* HERO */}
         <section className="bg-white/80 dark:bg-white/10 border border-[rgba(165,214,200,0.18)] rounded-[32px] p-6 shadow-sm relative overflow-hidden">
@@ -77,7 +77,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* TRENDING SECTION - THE FIX */}
+        {/* TRENDING SECTION */}
         <section>
           <div className="flex justify-between items-center mb-3">
             <h3 className="font-bold text-lg text-[#2E2A28] dark:text-white">Trending Items</h3>
