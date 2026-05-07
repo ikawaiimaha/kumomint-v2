@@ -268,17 +268,23 @@ export default function CatalogPage() {
     setPendingItemId(itemId);
 
     const isWishlisted = wishlistedIds.has(itemId);
+    
+    // FIX: Replaced .insert() with .upsert() and added the onConflict constraint
     const result = isWishlisted
       ? await supabase
           .from('wishlist_entries')
           .delete()
           .eq('trader_id', userId)
           .eq('item_id', itemId)
-      : await supabase.from('wishlist_entries').insert({
-          trader_id: userId,
-          item_id: itemId,
-          heart_tier: 1,
-        });
+      : await supabase
+          .from('wishlist_entries')
+          .upsert({
+            trader_id: userId,
+            item_id: itemId,
+            heart_tier: 1,
+          }, {
+            onConflict: 'trader_id, item_id'
+          });
 
     if (!result.error) {
       setWishlistedIds((previous) => {
