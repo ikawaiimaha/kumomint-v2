@@ -103,8 +103,10 @@ function KumoMascot({ size = 80 }: { size?: number }) {
   return <img src="/kumo-mascot.png" alt="Kumo" style={{ width: size, height: size }} className="object-contain" />;
 }
 
-function notificationIcon(type: string) {
-  return NOTIF_CONFIG[type]?.icon || Bell;
+// FIXED: Safety fallback for unknown notification types
+function getNotificationIcon(type: string) {
+  const config = NOTIF_CONFIG[type] || NOTIF_CONFIG.system;
+  return config.icon || Bell;
 }
 
 function formatRelativeDate(dateStr: string): string {
@@ -590,7 +592,8 @@ export default function Home() {
           ) : (
             <div className="space-y-3">
               {notifications.map((notification) => {
-                const Icon = notificationIcon(notification.type);
+                // FIXED: Safety call to fallback helper
+                const Icon = getNotificationIcon(notification.type);
 
                 return (
                   <button
