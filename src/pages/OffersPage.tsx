@@ -479,33 +479,30 @@ export default function OffersPage() {
       setActionOfferId(entry.offer.id);
       setError(null);
 
-      const respondedAt = new Date().toISOString();
-      const { error: updateError } = await supabase
-        .from('offers')
-        .update({ status: 'accepted', responded_at: respondedAt })
-        .eq('id', entry.offer.id)
-        .eq('seller_id', userId);
+      // 1. Execute the Atomic Swap on the backend
+      const { error: swapError } = await supabase.rpc('accept_trade_offer', {
+        p_offer_id: entry.offer.id,
+      });
 
-      if (updateError) {
-        setError(updateError.message);
+      if (swapError) {
+        setError("Atomic Swap Failed: " + swapError.message);
         setActionOfferId(null);
         return;
       }
 
+      // 2. Auto-complete the tracking row so your UI still registers it perfectly
       if (!entry.trade) {
-        const { error: tradeError } = await supabase.from('trades').insert({
+        await supabase.from('trades').insert({
           offer_id: entry.offer.id,
           buyer_id: entry.offer.buyer_id,
           seller_id: entry.offer.seller_id,
-          status: 'in_progress',
+          status: 'completed',
+          buyer_sent: true,
+          seller_sent: true
         });
-
-        if (tradeError) {
-          setError(tradeError.message);
-          setActionOfferId(null);
-          return;
-        }
       }
+
+      alert("Success! Items have been swapped atomically.");
 
       setSelectedOffer(null);
       setActionOfferId(null);
