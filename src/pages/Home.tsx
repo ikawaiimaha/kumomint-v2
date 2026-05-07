@@ -38,16 +38,17 @@ export default function Home() {
 
   return (
     <Layout showNav={true}>
-      <div className="space-y-6">
+      <div className="space-y-6 pb-6">
         {/* HERO */}
         <section className="bg-white/80 dark:bg-white/10 border border-[rgba(165,214,200,0.18)] rounded-[32px] p-6 shadow-sm relative overflow-hidden">
           <div className="relative z-10 flex items-center gap-4">
-            <div className="bg-gradient-to-br from-[#E9FAF4] to-[#F8EEFF] p-3 rounded-2xl">
+            <div className="bg-gradient-to-br from-[#E9FAF4] to-[#F8EEFF] p-3 rounded-2xl shrink-0">
               <img src="/kumo-mascot.png" className="w-16 h-16 object-contain" alt="Kumo" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs uppercase tracking-widest text-gray-400">Teacup Kumoru</p>
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white truncate">Welcome, {welcomeName}</h2>
+              {/* FIX: Removed 'truncate' and added 'leading-tight' so text wraps cleanly */}
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white leading-tight mt-1">Welcome, {welcomeName}</h2>
             </div>
           </div>
           {!userId && (
@@ -84,18 +85,21 @@ export default function Home() {
             <button onClick={() => navigate('/catalog')} className="text-sm text-[#4E927E] font-semibold inline-flex items-center">See All <ChevronRight size={14}/></button>
           </div>
           
-          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 -mx-4 px-4">
+          {/* FIX: Simplified container to stop padding clipping */}
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 w-full">
             {trending.map((item) => (
-              <div key={item.id} className="w-36 shrink-0 bg-white dark:bg-white/5 rounded-3xl border border-[rgba(165,214,200,0.14)] overflow-hidden shadow-sm">
-                <div className="h-28 bg-gray-50 dark:bg-gray-800 relative">
-                   <img src={item.thumbnail_url || item.image_url || ''} className="w-full h-full object-cover" alt={item.name} />
+              <div key={item.id} className="w-[140px] shrink-0 flex flex-col bg-white dark:bg-white/5 rounded-3xl border border-[rgba(165,214,200,0.14)] overflow-hidden shadow-sm">
+                <div className="h-28 bg-gray-50 dark:bg-gray-800 relative w-full overflow-hidden">
+                   {/* FIX: Removed 'alt' text so broken images don't push the layout out of bounds */}
+                   <img src={item.thumbnail_url || item.image_url || ''} className="w-full h-full object-cover block" alt="" />
                    <div className="absolute top-2 left-2">
                      <RarityBadge tier={item.rarity} />
                    </div>
                 </div>
-                <div className="p-3">
-                  <p className="text-xs font-bold text-[#2E2A28] dark:text-white truncate">{item.name}</p>
-                  <p className="text-[10px] text-gray-400 truncate">{item.character || 'HKDV'}</p>
+                <div className="p-3 w-full flex flex-col">
+                  {/* FIX: Using line-clamp prevents horizontal pushing bugs that truncate sometimes causes */}
+                  <p className="text-xs font-bold text-[#2E2A28] dark:text-white line-clamp-1">{item.name}</p>
+                  <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">{item.character || 'HKDV'}</p>
                 </div>
               </div>
             ))}
