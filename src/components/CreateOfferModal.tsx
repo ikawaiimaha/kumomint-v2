@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRightLeft, Lock, ShieldCheck, X, CheckCircle2 } from 'lucide-react';
+import { ArrowRightLeft, Lock, ShieldCheck, X, CheckCircle2, MessageCircleHeart } from 'lucide-react';
 import { cn } from '../lib/utils';
 import RarityBadge from './RarityBadge';
 
-// Mock types for the sketch
+// --- Types ---
 type Item = { id: string; name: string; rarity: 'N' | 'R' | 'S' | 'SR'; image_url: string };
+type Stamp = { id: string; emoji: string; label: string };
 
 export default function CreateOfferModal({ onClose }: { onClose: () => void }) {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [wantedItem, setWantedItem] = useState<Item | null>(null);
   const [offeredItem, setOfferedItem] = useState<Item | null>(null);
+  const [selectedStamp, setSelectedStamp] = useState<Stamp | null>(null);
 
-  // Mock Data
+  // --- Mock Data ---
   const theirItems: Item[] = [
     { id: '1', name: 'Sakura Long Hair', rarity: 'SR', image_url: 'https://via.placeholder.com/150/E6DCF9' },
     { id: '2', name: 'Birdcage Rose Wall', rarity: 'S', image_url: 'https://via.placeholder.com/150/FFD6E5' },
@@ -21,6 +23,13 @@ export default function CreateOfferModal({ onClose }: { onClose: () => void }) {
   const myInventory: Item[] = [
     { id: '3', name: 'Dreamy Starlight Dress', rarity: 'SR', image_url: 'https://via.placeholder.com/150/E9FAF4' },
     { id: '4', name: 'Basic Floor', rarity: 'N', image_url: 'https://via.placeholder.com/150/E8ECEE' },
+  ];
+
+  const greetingStamps: Stamp[] = [
+    { id: 's1', emoji: '🎀', label: 'Pretty please!' },
+    { id: 's2', emoji: '✨', label: 'Dream Trade!' },
+    { id: 's3', emoji: '🥺', label: 'Looking everywhere!' },
+    { id: 's4', emoji: '🤝', label: 'Let\'s trade!' },
   ];
 
   return (
@@ -39,7 +48,7 @@ export default function CreateOfferModal({ onClose }: { onClose: () => void }) {
               <ShieldCheck size={12} /> Safe Chat-Free Trading
             </div>
           </div>
-          <button onClick={onClose} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200">
+          <button onClick={onClose} className="p-2 bg-gray-100 rounded-full text-gray-500 hover:bg-gray-200 transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -57,10 +66,10 @@ export default function CreateOfferModal({ onClose }: { onClose: () => void }) {
                     <button 
                       key={item.id}
                       onClick={() => { setWantedItem(item); setStep(2); }}
-                      className="border border-[rgba(165,214,200,0.2)] rounded-2xl p-2 text-left hover:border-[#A5D6C8] transition-colors"
+                      className="border border-[rgba(165,214,200,0.2)] bg-white rounded-2xl p-2 text-left hover:border-[#A5D6C8] hover:shadow-md transition-all group"
                     >
                       <div className="h-24 rounded-xl bg-gray-100 overflow-hidden mb-2 relative">
-                        <img src={item.image_url} className="w-full h-full object-cover" alt="" />
+                        <img src={item.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="" />
                         <div className="absolute top-1 left-1"><RarityBadge tier={item.rarity} /></div>
                       </div>
                       <p className="text-[12px] font-bold text-[#2E2A28] truncate">{item.name}</p>
@@ -88,8 +97,8 @@ export default function CreateOfferModal({ onClose }: { onClose: () => void }) {
                         disabled={!isMatch}
                         onClick={() => { setOfferedItem(item); setStep(3); }}
                         className={cn(
-                          "border rounded-2xl p-2 text-left transition-all relative overflow-hidden",
-                          isMatch ? "border-[rgba(165,214,200,0.4)] hover:border-[#A5D6C8] bg-white" : "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
+                          "border rounded-2xl p-2 text-left transition-all relative overflow-hidden group",
+                          isMatch ? "border-[rgba(165,214,200,0.4)] hover:border-[#A5D6C8] hover:shadow-md bg-white" : "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
                         )}
                       >
                         {!isMatch && (
@@ -99,7 +108,7 @@ export default function CreateOfferModal({ onClose }: { onClose: () => void }) {
                           </div>
                         )}
                         <div className="h-24 rounded-xl bg-gray-100 overflow-hidden mb-2 relative">
-                          <img src={item.image_url} className="w-full h-full object-cover" alt="" />
+                          <img src={item.image_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform" alt="" />
                           <div className="absolute top-1 left-1"><RarityBadge tier={item.rarity} /></div>
                         </div>
                         <p className="text-[12px] font-bold text-[#2E2A28] truncate">{item.name}</p>
@@ -110,25 +119,69 @@ export default function CreateOfferModal({ onClose }: { onClose: () => void }) {
               </motion.div>
             )}
 
-            {/* STEP 3: The Handshake (Review) */}
-            {step === 3 && wantedItem && offeredItem && (
-              <motion.div key="step3" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+            {/* STEP 3: The Greeting Stamp */}
+            {step === 3 && (
+              <motion.div key="step3" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}>
+                <div className="text-center mb-6">
+                  <div className="w-12 h-12 bg-[#FFF4F6] rounded-full flex items-center justify-center mx-auto mb-3 text-[#FFB5C5]">
+                    <MessageCircleHeart size={24} />
+                  </div>
+                  <h3 className="text-[16px] font-bold text-[#2E2A28]">Add a Greeting Stamp</h3>
+                  <p className="text-[12px] text-[#2E2A2899] mt-1">Make your offer stand out!</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {greetingStamps.map(stamp => (
+                    <button
+                      key={stamp.id}
+                      onClick={() => { setSelectedStamp(stamp); setStep(4); }}
+                      className="flex flex-col items-center justify-center p-4 rounded-2xl border border-[rgba(165,214,200,0.2)] bg-white hover:bg-[#E9FAF4] hover:border-[#A5D6C8] transition-all"
+                    >
+                      <span className="text-3xl mb-2">{stamp.emoji}</span>
+                      <span className="text-[11px] font-semibold text-[#2E2A28]">{stamp.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <button 
+                  onClick={() => { setSelectedStamp(null); setStep(4); }}
+                  className="w-full py-3 text-[13px] font-semibold text-[#2E2A2899] hover:text-[#2E2A28] transition-colors"
+                >
+                  Skip for now
+                </button>
+              </motion.div>
+            )}
+
+            {/* STEP 4: The Handshake (Review) */}
+            {step === 4 && wantedItem && offeredItem && (
+              <motion.div key="step4" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                
+                {/* Stamp Preview Display */}
+                {selectedStamp && (
+                  <div className="flex justify-center mb-4">
+                    <div className="inline-flex items-center gap-2 bg-[#FFF4F6] border border-[#FFB5C5]/30 px-4 py-2 rounded-full shadow-sm">
+                      <span className="text-lg">{selectedStamp.emoji}</span>
+                      <span className="text-[12px] font-bold text-[#9A3F52]">"{selectedStamp.label}"</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-white border border-[rgba(165,214,200,0.2)] rounded-[24px] p-4 shadow-sm mb-6">
                   
                   {/* Their Item */}
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0">
+                    <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 shadow-inner">
                       <img src={wantedItem.image_url} className="w-full h-full object-cover" alt="" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] uppercase font-bold text-[#2E2A2899] mb-0.5">You Receive</p>
+                      <p className="text-[10px] uppercase tracking-wider font-bold text-[#4E927E] mb-0.5">You Receive</p>
                       <p className="text-[14px] font-bold text-[#2E2A28] truncate">{wantedItem.name}</p>
                       <RarityBadge tier={wantedItem.rarity} className="mt-1" />
                     </div>
                   </div>
 
                   {/* Divider */}
-                  <div className="relative h-[1px] bg-gray-100 my-2">
+                  <div className="relative h-[1px] bg-[rgba(165,214,200,0.3)] my-2">
                     <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-[#A5D6C8]">
                       <ArrowRightLeft size={16} />
                     </div>
@@ -136,11 +189,11 @@ export default function CreateOfferModal({ onClose }: { onClose: () => void }) {
 
                   {/* Your Item */}
                   <div className="flex items-center gap-3 mt-4">
-                    <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0">
+                    <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 shadow-inner">
                       <img src={offeredItem.image_url} className="w-full h-full object-cover" alt="" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] uppercase font-bold text-[#2E2A2899] mb-0.5">You Give</p>
+                      <p className="text-[10px] uppercase tracking-wider font-bold text-[#E18E47] mb-0.5">You Give</p>
                       <p className="text-[14px] font-bold text-[#2E2A28] truncate">{offeredItem.name}</p>
                       <RarityBadge tier={offeredItem.rarity} className="mt-1" />
                     </div>
@@ -149,11 +202,11 @@ export default function CreateOfferModal({ onClose }: { onClose: () => void }) {
                 </div>
 
                 <button 
-                  onClick={() => alert('Offer Sent!')}
-                  className="w-full flex items-center justify-center gap-2 bg-[#A5D6C8] hover:bg-[#82C9B2] text-[#2E2A28] py-4 rounded-[20px] font-bold text-[15px] transition-colors shadow-lg shadow-[#A5D6C8]/20"
+                  onClick={() => alert('Sending to Supabase...')}
+                  className="w-full flex items-center justify-center gap-2 bg-[linear-gradient(135deg,#A5D6C8,#82C9B2)] text-[#2E2A28] py-4 rounded-[20px] font-bold text-[15px] transition-transform hover:scale-[1.02] shadow-[0_14px_28px_rgba(165,214,200,0.35)]"
                 >
                   <CheckCircle2 size={18} />
-                  Send Final Offer
+                  Confirm Trade Offer
                 </button>
               </motion.div>
             )}
