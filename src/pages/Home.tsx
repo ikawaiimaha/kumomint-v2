@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { initiateTradeOffer } from '../lib/trade-utils'; // Ensure this file exists in src/lib
 import { 
   Heart, 
   ArrowLeftRight, 
   Sparkles, 
   Cloud, 
-  Search, 
   Bell, 
   ChevronRight,
   Package,
@@ -18,9 +18,10 @@ interface PerfectMatch {
   trader_id: string;
   trader_name: string;
   trader_avatar: string;
+  give_item_id: string; // ID of your item to give
   give_item_name: string;
   give_item_image: string;
-  get_item_id: string;
+  get_item_id: string;  // ID of their item to receive
   get_item_name: string;
   get_item_image: string;
   fairness_ratio: number;
@@ -84,18 +85,35 @@ const Home: React.FC = () => {
     }
   };
 
+  const handleSendOffer = async (match: PerfectMatch) => {
+    if (!user) return navigate('/login');
+    
+    try {
+      await initiateTradeOffer(
+        user.id,
+        match.trader_id,
+        match.give_item_id,
+        match.get_item_id
+      );
+      alert("Offer sent successfully! No fees were charged.");
+      navigate('/offers');
+    } catch (error: any) {
+      alert(error.message || "Failed to send offer. Check item eligibility.");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#FDF8F7] pb-24">
       {/* --- HEADER --- */}
       <header className="p-6 flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-black text-[#2E2A28] tracking-tight">KUMOMINT</h1>
+          <h1 className="text-2xl font-black text-[#2E2A28] tracking-tight text-shadow-sm">KUMOMINT</h1>
           <p className="text-[10px] font-bold text-[#4E927E] tracking-widest uppercase opacity-70">
             Trade Matching Platform
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-[#F0E6E4]">
+          <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-[#F0E6E4] active:scale-90 transition-transform">
             <Bell size={18} className="text-[#2E2A28]" />
           </button>
         </div>
@@ -106,7 +124,7 @@ const Home: React.FC = () => {
         {user && (
           <section 
             onClick={() => navigate('/profile')}
-            className="bg-gradient-to-br from-[#7ED7C1] to-[#5BBAA3] p-5 rounded-[32px] text-white shadow-md cursor-pointer"
+            className="bg-gradient-to-br from-[#7ED7C1] to-[#5BBAA3] p-5 rounded-[32px] text-white shadow-md cursor-pointer hover:brightness-105 active:scale-[0.98] transition-all"
           >
             <div className="flex justify-between items-center mb-3">
               <div>
@@ -146,7 +164,7 @@ const Home: React.FC = () => {
               <p className="text-sm font-bold text-[#2E2A28]">Login to find trades!</p>
               <button 
                 onClick={() => navigate('/login')}
-                className="mt-3 px-6 py-2 bg-[#FFB5C5] text-white rounded-full text-xs font-bold"
+                className="mt-3 px-6 py-2 bg-[#FFB5C5] text-white rounded-full text-xs font-bold shadow-sm"
               >
                 Get Started
               </button>
@@ -156,11 +174,11 @@ const Home: React.FC = () => {
               {perfectMatches.map((match, idx) => (
                 <div 
                   key={idx}
-                  className="min-w-[280px] bg-white rounded-[32px] p-4 shadow-sm border border-[#F0E6E4]"
+                  className="min-w-[280px] bg-white rounded-[32px] p-4 shadow-sm border border-[#F0E6E4] flex flex-col"
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <img src={match.trader_avatar} className="w-6 h-6 rounded-full bg-gray-100" alt="" />
+                      <img src={match.trader_avatar} className="w-6 h-6 rounded-full bg-gray-100 border border-gray-100" alt="" />
                       <span className="text-[11px] font-bold text-gray-500">{match.trader_name}</span>
                     </div>
                     <div className="text-[10px] font-bold text-[#4E927E] bg-[#E8F4F1] px-2 py-0.5 rounded-full">
@@ -168,23 +186,30 @@ const Home: React.FC = () => {
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between gap-3 flex-1">
                     <div className="text-center flex-1">
-                      <div className="w-16 h-16 bg-[#F8F9FB] rounded-2xl mx-auto mb-2 flex items-center justify-center overflow-hidden">
+                      <div className="w-16 h-16 bg-[#F8F9FB] rounded-2xl mx-auto mb-2 flex items-center justify-center overflow-hidden border border-gray-50">
                         <img src={match.get_item_image} className="w-12 h-12 object-contain" alt="" />
                       </div>
                       <p className="text-[10px] font-bold text-[#2E2A28] line-clamp-1">Receive</p>
                     </div>
                     
-                    <ArrowLeftRight size={16} className="text-[#FFB5C5]" />
+                    <ArrowLeftRight size={16} className="text-[#FFB5C5] shrink-0" />
                     
                     <div className="text-center flex-1">
-                      <div className="w-16 h-16 bg-[#F8F9FB] rounded-2xl mx-auto mb-2 flex items-center justify-center overflow-hidden">
+                      <div className="w-16 h-16 bg-[#F8F9FB] rounded-2xl mx-auto mb-2 flex items-center justify-center overflow-hidden border border-gray-50">
                         <img src={match.give_item_image} className="w-12 h-12 object-contain" alt="" />
                       </div>
                       <p className="text-[10px] font-bold text-[#2E2A28] line-clamp-1">Send</p>
                     </div>
                   </div>
+
+                  <button 
+                    onClick={() => handleSendOffer(match)}
+                    className="w-full mt-4 py-3 bg-[#7ED7C1] text-white rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-transform shadow-sm"
+                  >
+                    <ArrowLeftRight size={14} /> Send Trade Offer
+                  </button>
                 </div>
               ))}
             </div>
@@ -194,7 +219,7 @@ const Home: React.FC = () => {
                 <Heart size={20} className="text-[#FFB5C5]" />
               </div>
               <p className="text-sm font-bold text-[#2E2A28]">No matches found yet</p>
-              <p className="text-[11px] text-gray-400 mt-1 max-w-[200px] mx-auto">
+              <p className="text-[11px] text-gray-400 mt-1 max-w-[200px] mx-auto leading-relaxed">
                 Heart more items in the catalog to help the algorithm!
               </p>
             </div>
@@ -205,7 +230,7 @@ const Home: React.FC = () => {
         <div className="grid grid-cols-2 gap-4">
           <button 
             onClick={() => navigate('/wardrobe')}
-            className="bg-[#EEF2FF] p-5 rounded-[32px] text-left border border-[#DDE4FF]"
+            className="bg-[#EEF2FF] p-5 rounded-[32px] text-left border border-[#DDE4FF] active:scale-[0.97] transition-transform"
           >
             <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-sm text-[#7C93FF]">
               <Package size={20} />
@@ -216,7 +241,7 @@ const Home: React.FC = () => {
 
           <button 
             onClick={() => navigate('/wishlist')}
-            className="bg-[#FFF5F7] p-5 rounded-[32px] text-left border border-[#FFDDE4]"
+            className="bg-[#FFF5F7] p-5 rounded-[32px] text-left border border-[#FFDDE4] active:scale-[0.97] transition-transform"
           >
             <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center mb-3 shadow-sm text-[#FFB5C5]">
               <Heart size={20} />
@@ -230,7 +255,7 @@ const Home: React.FC = () => {
         <section>
           <div className="flex justify-between items-center mb-4">
             <h3 className="font-bold text-lg text-[#2E2A28]">New Collections</h3>
-            <button onClick={() => navigate('/catalog')} className="text-gray-400">
+            <button onClick={() => navigate('/catalog')} className="text-gray-400 hover:text-[#7ED7C1]">
               <ChevronRight size={20} />
             </button>
           </div>
@@ -241,14 +266,14 @@ const Home: React.FC = () => {
                 onClick={() => navigate(`/catalog?collection=${col.id}`)}
                 className="min-w-[140px] group cursor-pointer"
               >
-                <div className="aspect-[4/5] bg-white rounded-[24px] mb-2 border border-[#F0E6E4] overflow-hidden p-3 flex items-center justify-center shadow-sm">
+                <div className="aspect-[4/5] bg-white rounded-[24px] mb-2 border border-[#F0E6E4] overflow-hidden p-3 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all">
                   {col.image_url ? (
-                    <img src={col.image_url} className="w-full h-full object-contain" alt="" />
+                    <img src={col.image_url} className="w-full h-full object-contain group-hover:scale-105 transition-transform" alt="" />
                   ) : (
                     <Cloud size={32} className="text-[#A5D6C8] opacity-20" />
                   )}
                 </div>
-                <p className="text-[11px] font-bold text-[#2E2A28] line-clamp-1">{col.name}</p>
+                <p className="text-[11px] font-bold text-[#2E2A28] line-clamp-1 px-1 group-hover:text-[#4E927E] transition-colors">{col.name}</p>
               </div>
             ))}
           </div>
