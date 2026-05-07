@@ -172,7 +172,7 @@ function notificationIcon(type: string) {
   }
 }
 
-function KumoMascot({ mood = 'welcome', size = 80 }: { mood?: string; size?: number }) {
+function KumoMascot({ size = 80 }: { size?: number }) {
   return <img src="/kumo-mascot.png" alt="Kumo" style={{ width: size, height: size }} className="object-contain" />;
 }
 
