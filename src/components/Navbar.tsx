@@ -1,67 +1,43 @@
-import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Cloud, Search, Shirt, LayoutGrid, User } from 'lucide-react';
+import { Home, Search, ShoppingBag, User, PlusSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const tabs = [
-  { label: 'Home', icon: Cloud, path: '/' },
-  { label: 'Catalog', icon: Search, path: '/catalog' },
-  { label: 'Wardrobe', icon: Shirt, path: '/wardrobe' },
-  { label: 'Collection', icon: LayoutGrid, path: '/collection' },
-  { label: 'Profile', icon: User, path: '/profile' },
+const NAV_ITEMS = [
+  { icon: Home, label: 'Home', path: '/' },
+  { icon: Search, label: 'Catalog', path: '/catalog' },
+  { icon: PlusSquare, label: 'Creator', path: '/creator' },
+  { icon: ShoppingBag, label: 'Wardrobe', path: '/wardrobe' },
+  { icon: User, label: 'Profile', path: '/profile' },
 ];
 
 export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [tappedIndex, setTappedIndex] = useState<number | null>(null);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-nav glass-nav pb-[env(safe-area-inset-bottom,0px)]">
-      <div className="max-w-[600px] mx-auto flex items-center justify-around h-16">
-        {tabs.map((tab, index) => {
-          const isActive =
-            tab.path === '/'
-              ? location.pathname === '/'
-              : location.pathname.startsWith(tab.path);
-          const Icon = tab.icon;
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-6 px-4 pointer-events-none">
+      <div className="flex items-center gap-1 bg-white/80 dark:bg-[#1A1816]/80 backdrop-blur-xl border border-[rgba(165,214,200,0.2)] rounded-[28px] p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.12)] pointer-events-auto">
+        {NAV_ITEMS.map((item) => {
+          const isActive = location.pathname === item.path;
+          // SAFETY CHECK: If for some reason the icon is missing, use Home as a fallback
+          const Icon = item.icon || Home;
+
           return (
-            <motion.button
-              key={tab.label}
+            <button
+              key={item.path}
+              onClick={() => navigate(item.path)}
               className={cn(
-                'flex flex-col items-center justify-center gap-0.5 w-16 h-full select-none',
-                'transition-colors duration-200'
+                "relative flex flex-col items-center justify-center w-14 h-12 rounded-[22px] transition-all duration-300",
+                isActive 
+                  ? "bg-[#A5D6C8] text-[#2E2A28] shadow-sm" 
+                  : "text-[#2E2A2899] dark:text-[#FDFCF899] hover:bg-black/5 dark:hover:bg-white/5"
               )}
-              onClick={() => {
-                setTappedIndex(index);
-                setTimeout(() => setTappedIndex(null), 100);
-                navigate(tab.path);
-              }}
-              animate={{
-                scale: tappedIndex === index ? 0.88 : 1,
-              }}
-              transition={{ duration: 0.1 }}
             >
-              <Icon
-                size={24}
-                className={cn(
-                  'transition-colors duration-200',
-                  isActive ? 'text-[#A5D6C8]' : 'text-[#2E2A2866]'
-                )}
-                strokeWidth={isActive ? 2.5 : 1.5}
-              />
-              <span
-                className={cn(
-                  'text-[11px] font-semibold tracking-[0.04em] transition-all duration-200',
-                  isActive
-                    ? 'text-[#A5D6C8] font-display scale-105'
-                    : 'text-[#2E2A2866]'
-                )}
-              >
-                {tab.label}
-              </span>
-            </motion.button>
+              <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+              {isActive && (
+                <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-[#2E2A28]" />
+              )}
+            </button>
           );
         })}
       </div>
