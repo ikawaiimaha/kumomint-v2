@@ -1,6 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Sun, Moon, ArrowLeft } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { getTraderProfile, supabase } from '../lib/supabase';
@@ -26,7 +25,6 @@ export default function Layout({
   const [scrolled, setScrolled] = useState(false);
   const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const [username, setUsername] = useState('Dreamer');
-  const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -38,7 +36,7 @@ export default function Layout({
       if (isMounted) setUsername(data?.display_name || data?.username || 'Dreamer');
     };
     syncUser();
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => syncUser());
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => { void syncUser(); });
     return () => { isMounted = false; authListener.subscription.unsubscribe(); };
   }, []);
 
@@ -53,7 +51,6 @@ export default function Layout({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Hide header if title is empty string
   const hasHeader = title !== "";
 
   return (
@@ -62,18 +59,18 @@ export default function Layout({
         {hasHeader && (
           <header className={cn(
             'sticky top-0 z-50 h-14 flex items-center justify-between px-4 transition-all',
-            scrolled ? 'bg-white/80 backdrop-blur-xl border-b border-[rgba(165,214,200,0.1)]' : 'bg-transparent'
+            scrolled ? 'bg-white/80 dark:bg-[#1A1816]/80 backdrop-blur-xl border-b border-[rgba(165,214,200,0.1)]' : 'bg-transparent'
           )}>
             <div className="flex items-center gap-2">
               {showBack && (
-                <button onClick={onBack || (() => navigate(-1))} className="p-2"><ArrowLeft size={20} /></button>
+                <button onClick={onBack || (() => navigate(-1))} className="p-2 text-[#2E2A28] dark:text-white"><ArrowLeft size={20} /></button>
               )}
-              <h1 className="font-bold text-[18px] text-[#2E2A28]">{title || `Hi, ${username}!`}</h1>
+              <h1 className="font-bold text-[18px] text-[#2E2A28] dark:text-white">{title || `Hi, ${username}!`}</h1>
             </div>
             <div className="flex items-center gap-1">
               {rightAction}
-              <button onClick={() => setIsDark(!isDark)} className="p-2">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
-              <button onClick={() => navigate('/notifications')} className="p-2 relative"><Bell size={20} /><span className="absolute top-2 right-2 w-2 h-2 bg-red-400 rounded-full" /></button>
+              <button onClick={() => setIsDark(!isDark)} className="p-2 text-[#2E2A28] dark:text-white">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
+              <button onClick={() => navigate('/notifications')} className="p-2 relative text-[#2E2A28] dark:text-white"><Bell size={20} /><span className="absolute top-2 right-2 w-2 h-2 bg-red-400 rounded-full" /></button>
             </div>
           </header>
         )}
