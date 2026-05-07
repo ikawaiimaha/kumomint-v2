@@ -21,15 +21,16 @@ import {
   Wind,
   X,
 } from 'lucide-react';
-import Layout from '@/components/Layout';
-import BottomSheet from '@/components/BottomSheet';
-import RarityBadge, { type RarityTier } from '@/components/RarityBadge';
-import { supabase } from '@/lib/supabase';
-import { cn } from '@/lib/utils';
+import Layout from '../components/Layout';
+import BottomSheet from '../components/BottomSheet';
+import RarityBadge from '../components/RarityBadge';
+import { supabase } from '../lib/supabase';
+import { cn } from '../lib/utils';
 
+// --- Types ---
 type TraderStatus = 'sunny' | 'playing' | 'drifting' | 'dreaming';
 type PreferredMethod = 'tickets_only' | 'gifts_only' | 'both';
-type ItemRarity = 'N' | 'R' | 'S' | 'SR';
+type ItemRarity = 'N' | 'R' | 'S' | 'SR' | 'SSR';
 type VerificationStatus = 'pending' | 'verified' | 'rejected';
 
 interface TraderProfile {
@@ -81,7 +82,7 @@ interface InventoryPreviewItem {
   id: string;
   entryId: string;
   name: string;
-  rarityTier: RarityTier;
+  rarityTier: string;
   quantity: number;
   isPadlocked: boolean;
   thumbnailUrl: string | null;
@@ -92,7 +93,7 @@ interface WishlistPreviewItem {
   id: string;
   entryId: string;
   name: string;
-  rarityTier: RarityTier;
+  rarityTier: string;
   heartTier: number;
   thumbnailUrl: string | null;
   imageUrl: string | null;
@@ -110,7 +111,7 @@ interface HkdvAccount {
 
 const STATUS_CONFIG: Record<
   TraderStatus,
-  { label: string; icon: typeof Sun; dotClass: string; pillClass: string }
+  { label: string; icon: any; dotClass: string; pillClass: string }
 > = {
   sunny: {
     label: 'Sunny',
@@ -146,7 +147,7 @@ const METHOD_LABEL: Record<PreferredMethod, string> = {
 
 const BADGE_CONFIG: Record<
   string,
-  { label: string; icon: typeof Award; colorClass: string; borderClass: string }
+  { label: string; icon: any; colorClass: string; borderClass: string }
 > = {
   moon: {
     label: 'Moon Trader',
@@ -186,18 +187,16 @@ const BADGE_CONFIG: Record<
   },
 };
 
-const rarityMap: Record<ItemRarity, RarityTier> = {
-  N: 'Moon',
-  R: 'Star',
-  S: 'Comet',
-  SR: 'Galaxy',
-};
-
-const rarityBackground: Record<RarityTier, string> = {
+const rarityBackground: Record<string, string> = {
+  N: 'bg-[linear-gradient(135deg,#E8ECEE,#CBD4D9)]',
   Moon: 'bg-[linear-gradient(135deg,#E8ECEE,#CBD4D9)]',
+  R: 'bg-[linear-gradient(135deg,#FBE9CC,#FFE082)]',
   Star: 'bg-[linear-gradient(135deg,#FBE9CC,#FFE082)]',
+  S: 'bg-[linear-gradient(135deg,#E7F5EF,#A5D6C8)]',
   Comet: 'bg-[linear-gradient(135deg,#E7F5EF,#A5D6C8)]',
+  SR: 'bg-[linear-gradient(135deg,#F9D8EA,#D1A3FF)]',
   Galaxy: 'bg-[linear-gradient(135deg,#F9D8EA,#D1A3FF)]',
+  SSR: 'bg-[linear-gradient(135deg,#F9D8EA,#D1A3FF)]',
 };
 
 function normalizeJoinedItem(item: ItemRecord | ItemRecord[] | null) {
@@ -260,14 +259,14 @@ function PreviewCard({
   heartTier,
   locked,
 }: {
-  item: { name: string; rarityTier: RarityTier; thumbnailUrl: string | null; imageUrl: string | null };
+  item: { name: string; rarityTier: string; thumbnailUrl: string | null; imageUrl: string | null };
   quantity?: number;
   heartTier?: number;
   locked?: boolean;
 }) {
   return (
     <div className="w-32 shrink-0 overflow-hidden rounded-[22px] border border-[rgba(165,214,200,0.14)] bg-white/[0.76] p-3 shadow-[0_10px_24px_rgba(46,42,40,0.04)]">
-      <div className={cn('relative h-24 rounded-[18px]', rarityBackground[item.rarityTier])}>
+      <div className={cn('relative h-24 rounded-[18px]', rarityBackground[item.rarityTier] || rarityBackground.N)}>
         {item.thumbnailUrl || item.imageUrl ? (
           <img
             src={item.thumbnailUrl || item.imageUrl || ''}
@@ -282,7 +281,7 @@ function PreviewCard({
         )}
 
         <div className="absolute left-2 top-2">
-          <RarityBadge tier={item.rarityTier} className="!px-1.5 !py-0.5 !text-[9px]" />
+          <RarityBadge tier={item.rarityTier} className="!px-1.5 !py-0 !text-[9px]" />
         </div>
 
         {typeof quantity === 'number' ? (
@@ -430,10 +429,11 @@ export default function ProfilePage() {
       setEditDisplayName(nextProfile.display_name ?? '');
       setEditBio(nextProfile.bio ?? '');
       setLikesCount(likeCountResult.count ?? 0);
-      setHasLiked(Boolean((likeStateResult as { data: { id: string } | null }).data));
+      setHasLiked(Boolean((likeStateResult as any).data));
 
+      const invData = (inventoryResult.data ?? []) as InventoryRow[];
       setInventoryPreview(
-        ((inventoryResult.data ?? []) as InventoryRow[])
+        invData
           .map((row) => {
             const item = normalizeJoinedItem(row.items);
             if (!item) return null;
@@ -441,18 +441,19 @@ export default function ProfilePage() {
               id: item.id,
               entryId: row.id,
               name: item.name,
-              rarityTier: rarityMap[item.rarity],
+              rarityTier: item.rarity,
               quantity: row.quantity,
               isPadlocked: row.is_padlocked,
               thumbnailUrl: item.thumbnail_url ?? null,
               imageUrl: item.image_url ?? null,
-            };
+            } as InventoryPreviewItem;
           })
           .filter((item): item is InventoryPreviewItem => item !== null)
       );
 
+      const wishData = (wishlistResult.data ?? []) as WishlistRow[];
       setWishlistPreview(
-        ((wishlistResult.data ?? []) as WishlistRow[])
+        wishData
           .map((row) => {
             const item = normalizeJoinedItem(row.items);
             if (!item) return null;
@@ -460,11 +461,11 @@ export default function ProfilePage() {
               id: item.id,
               entryId: row.id,
               name: item.name,
-              rarityTier: rarityMap[item.rarity],
+              rarityTier: item.rarity,
               heartTier: row.heart_tier,
               thumbnailUrl: item.thumbnail_url ?? null,
               imageUrl: item.image_url ?? null,
-            };
+            } as WishlistPreviewItem;
           })
           .filter((item): item is WishlistPreviewItem => item !== null)
       );

@@ -1,60 +1,52 @@
-import { cn } from '@/lib/utils';
-import { Moon, Sparkles, Star, Atom } from 'lucide-react';
+import { Moon, Sparkles, Star, Zap } from 'lucide-react';
+import { cn } from '../lib/utils';
 
-type RarityTier = 'Moon' | 'Star' | 'Comet' | 'Galaxy';
+// We now include BOTH languages so the other pages stop complaining
+export type RarityTier = 'N' | 'R' | 'S' | 'SR' | 'SSR' | 'Moon' | 'Star' | 'Comet' | 'Galaxy';
+
+const RARITY_CONFIG: Record<string, { label: string; icon: any; color: string; bg: string; border: string }> = {
+  // Database Language
+  N:   { label: 'Moon',  icon: Moon,     color: 'text-slate-500',   bg: 'bg-slate-50',   border: 'border-slate-200' },
+  R:   { label: 'Star',  icon: Star,     color: 'text-amber-500',   bg: 'bg-amber-50',   border: 'border-amber-200' },
+  S:   { label: 'Spark', icon: Zap,      color: '#9B59B6',          bg: 'bg-purple-50',  border: 'border-purple-200' },
+  SR:  { label: 'Super', icon: Sparkles, color: 'text-pink-500',    bg: 'bg-pink-50',    border: 'border-pink-200' },
+  SSR: { label: 'Ultra', icon: Sparkles, color: 'text-fuchsia-600', bg: 'bg-fuchsia-50', border: 'border-fuchsia-200' },
+  
+  // Fancy Page Language (Mapping them to the same styles)
+  Moon:   { label: 'Moon',  icon: Moon,     color: 'text-slate-500',   bg: 'bg-slate-50',   border: 'border-slate-200' },
+  Star:   { label: 'Star',  icon: Star,     color: 'text-amber-500',   bg: 'bg-amber-50',   border: 'border-amber-200' },
+  Comet:  { label: 'Spark', icon: Zap,      color: '#9B59B6',          bg: 'bg-purple-50',  border: 'border-purple-200' },
+  Galaxy: { label: 'Super', icon: Sparkles, color: 'text-pink-500',    bg: 'bg-pink-50',    border: 'border-pink-200' },
+};
 
 interface RarityBadgeProps {
-  tier: RarityTier;
+  tier?: RarityTier | string;
+  rarity?: RarityTier | string;
   className?: string;
 }
 
-const rarityConfig = {
-  Moon: {
-    color: '#90A4AE',
-    bg: 'rgba(144,164,174,0.15)',
-    label: 'MOON',
-    Icon: Moon,
-  },
-  Star: {
-    color: '#FFB5C5',
-    bg: 'rgba(255,181,197,0.15)',
-    label: 'STAR',
-    Icon: Star,
-  },
-  Comet: {
-    color: '#A5D6C8',
-    bg: 'rgba(165,214,200,0.15)',
-    label: 'COMET',
-    Icon: Sparkles,
-  },
-  Galaxy: {
-    color: '#D1A3FF',
-    bg: 'rgba(209,163,255,0.15)',
-    label: 'GALAXY',
-    Icon: Atom,
-  },
-};
-
-export default function RarityBadge({ tier, className }: RarityBadgeProps) {
-  const config = rarityConfig[tier];
-  const Icon = config.Icon;
+export default function RarityBadge({ tier, rarity, className }: RarityBadgeProps) {
+  const activeTier = (tier || rarity || 'N') as string;
+  
+  // SAFETY SHIELD: If it's not in the list, default to Moon (N)
+  const config = RARITY_CONFIG[activeTier] || RARITY_CONFIG.N;
+  const Icon = config.icon;
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-[0.04em]',
-        className
-      )}
-      style={{
-        backgroundColor: config.bg,
-        color: config.color,
-      }}
-    >
-      <Icon size={12} style={{ color: config.color }} />
-      {config.label}
-    </span>
+    <div className={cn(
+      'inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider',
+      config.bg,
+      config.border,
+      className
+    )}>
+      <Icon 
+        size={10} 
+        style={{ color: config.color.startsWith('#') ? config.color : undefined }}
+        className={!config.color.startsWith('#') ? config.color : ''} 
+      />
+      <span className={config.color.startsWith('#') ? '' : config.color} style={{ color: config.color.startsWith('#') ? config.color : undefined }}>
+        {config.label}
+      </span>
+    </div>
   );
 }
-
-export { rarityConfig };
-export type { RarityTier };
