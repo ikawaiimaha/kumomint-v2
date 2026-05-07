@@ -29,32 +29,18 @@ export default function Layout({
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isHome = location.pathname === '/';
-
   useEffect(() => {
     let isMounted = true;
     const syncUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!isMounted) return;
-      if (!user) { setUsername('Dreamer'); return; }
-
-      const fallbackUsername = user.user_metadata?.username || user.email?.split('@')[0] || 'Dreamer';
+      if (!isMounted || !user) return;
       const { data } = await getTraderProfile(user.id);
-      
-      if (isMounted) {
-        setUsername(data?.display_name || data?.username || fallbackUsername);
-      }
+      if (isMounted) setUsername(data?.display_name || data?.username || 'Dreamer');
     };
-
     syncUser();
-    const { data: authListener } = supabase.auth.onAuthStateChange(() => { void syncUser(); });
-    return () => {
-      isMounted = false;
-      authListener.subscription.unsubscribe();
-    };
+    const { data: authListener } = supabase.auth.onAuthStateChange(() => syncUser());
+    return () => { isMounted = false; authListener.subscription.unsubscribe(); };
   }, []);
-
-  const pageTitle = title || (isHome ? `Hi, ${username}!` : '');
 
   useEffect(() => {
     if (isDark) document.documentElement.classList.add('dark');
@@ -62,57 +48,39 @@ export default function Layout({
   }, [isDark]);
 
   useEffect(() => {
-    const handleScroll = () => { setScrolled(window.scrollY > 20); };
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const toggleTheme = () => {
-    setIsDark((prev) => {
-      const next = !prev;
-      localStorage.setItem('theme', next ? 'dark' : 'light');
-      return next;
-    });
-  };
+  // Hide header if title is empty string
+  const hasHeader = title !== "";
 
   return (
-    <div className={cn('min-h-[100dvh] bg-[#FDFCF8] dark:bg-[#1A1816] transition-colors duration-300 overflow-x-hidden')}>
-      <div className="max-w-[600px] mx-auto relative overflow-x-hidden">
-        <header className={cn(
-          'sticky top-0 z-50 h-14 flex items-center justify-between px-4 transition-all duration-200',
-          scrolled ? 'bg-white/80 dark:bg-[#1A1816]/80 backdrop-blur-xl border-b border-[rgba(165,214,200,0.1)]' : 'bg-transparent'
-        )}>
-          <div className="flex items-center gap-2">
-            {showBack && (
-              <button onClick={onBack || (() => navigate(-1))} className="w-9 h-9 rounded-full flex items-center justify-center -ml-1">
-                <ArrowLeft size={20} className="text-[#2E2A28] dark:text-[#FDFCF8]" />
-              </button>
-            )}
-            <h1 className={cn("font-bold font-display text-[#2E2A28] dark:text-[#FDFCF8]", isHome ? "text-[22px]" : "text-[18px]")}>
-              {pageTitle}
-            </h1>
-          </div>
+    <div className="min-h-screen bg-[#FDFCF8] dark:bg-[#1A1816] transition-colors overflow-x-hidden">
+      <div className="max-w-[600px] mx-auto relative min-h-screen flex flex-col">
+        {hasHeader && (
+          <header className={cn(
+            'sticky top-0 z-50 h-14 flex items-center justify-between px-4 transition-all',
+            scrolled ? 'bg-white/80 backdrop-blur-xl border-b border-[rgba(165,214,200,0.1)]' : 'bg-transparent'
+          )}>
+            <div className="flex items-center gap-2">
+              {showBack && (
+                <button onClick={onBack || (() => navigate(-1))} className="p-2"><ArrowLeft size={20} /></button>
+              )}
+              <h1 className="font-bold text-[18px] text-[#2E2A28]">{title || `Hi, ${username}!`}</h1>
+            </div>
+            <div className="flex items-center gap-1">
+              {rightAction}
+              <button onClick={() => setIsDark(!isDark)} className="p-2">{isDark ? <Sun size={20} /> : <Moon size={20} />}</button>
+              <button onClick={() => navigate('/notifications')} className="p-2 relative"><Bell size={20} /><span className="absolute top-2 right-2 w-2 h-2 bg-red-400 rounded-full" /></button>
+            </div>
+          </header>
+        )}
 
-          <div className="flex items-center gap-1">
-            {rightAction}
-            <button onClick={toggleTheme} className="w-9 h-9 rounded-full flex items-center justify-center text-[#2E2A28] dark:text-[#FDFCF8]">
-              {isDark ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            <button onClick={() => navigate('/notifications')} className="relative w-9 h-9 rounded-full flex items-center justify-center text-[#2E2A28] dark:text-[#FDFCF8]">
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#EF9A9A]" />
-            </button>
-          </div>
-        </header>
-
-        <motion.main 
-          className={cn('px-4 pb-24 relative overflow-x-hidden', showNav && 'pb-28')}
-          initial={{ opacity: 0, y: 12 }} 
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <main className={cn('flex-1 px-4', hasHeader ? 'pt-2' : 'pt-6', showNav ? 'pb-28' : 'pb-10')}>
           {children}
-        </motion.main>
-
+        </main>
         {showNav && <Navbar />}
       </div>
     </div>
