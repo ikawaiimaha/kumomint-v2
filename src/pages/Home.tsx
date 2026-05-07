@@ -3,13 +3,14 @@ import { Cloud, Heart, Zap, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import RarityBadge from '../components/RarityBadge';
+import MatchCard, { type MatchData } from '../components/MatchCard';
 import { supabase } from '../lib/supabase';
 
 export default function Home() {
   const navigate = useNavigate();
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [matches, setMatches] = useState<any[]>([]);
+  const [perfectMatches, setPerfectMatches] = useState<MatchData[]>([]);
   const [trending, setTrending] = useState<any[]>([]);
 
   useEffect(() => {
@@ -23,12 +24,13 @@ export default function Home() {
       setTrending(trendRes.data ?? []);
 
       if (user) {
+        // Fetch the user's profile AND run our new 4-Heart Matchmaker RPC
         const [profRes, matchRes] = await Promise.all([
           supabase.from('traders').select('*').eq('id', user.id).maybeSingle(),
-          supabase.rpc('get_trade_matches', { p_trader_id: user.id })
+          supabase.rpc('get_perfect_matches', { p_trader_id: user.id })
         ]);
         setProfile(profRes.data);
-        setMatches(matchRes.data ?? []);
+        setPerfectMatches(matchRes.data ?? []);
       }
     };
     init();
@@ -47,8 +49,7 @@ export default function Home() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs uppercase tracking-widest text-gray-400">Teacup Kumoru</p>
-              {/* FIX: Removed 'truncate' and added 'leading-tight' so text wraps cleanly */}
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white leading-tight mt-1">Welcome, {welcomeName}</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white leading-tight mt-1 truncate">Welcome, {welcomeName}</h2>
             </div>
           </div>
           {!userId && (
@@ -73,10 +74,25 @@ export default function Home() {
           </div>
           <div className="bg-white dark:bg-white/5 p-4 rounded-2xl border border-[rgba(165,214,200,0.1)] text-center shadow-sm">
             <Heart className="mx-auto mb-1 text-pink-300" size={20} />
-            <p className="text-xl font-bold text-[#2E2A28] dark:text-white">{matches.length}</p>
+            {/* Updates the Matches stat based on the new logic */}
+            <p className="text-xl font-bold text-[#2E2A28] dark:text-white">{perfectMatches.length}</p>
             <p className="text-[10px] text-gray-400">MATCHES</p>
           </div>
         </div>
+
+        {/* --- NEW: PERFECT MATCHES SECTION --- */}
+        {userId && perfectMatches.length > 0 && (
+          <section>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-bold text-lg text-[#2E2A28] dark:text-white">Perfect Matches</h3>
+            </div>
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 w-full">
+              {perfectMatches.map((match, idx) => (
+                <MatchCard key={idx} match={match} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* TRENDING SECTION */}
         <section>
@@ -85,19 +101,16 @@ export default function Home() {
             <button onClick={() => navigate('/catalog')} className="text-sm text-[#4E927E] font-semibold inline-flex items-center">See All <ChevronRight size={14}/></button>
           </div>
           
-          {/* FIX: Simplified container to stop padding clipping */}
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4 w-full">
             {trending.map((item) => (
               <div key={item.id} className="w-[140px] shrink-0 flex flex-col bg-white dark:bg-white/5 rounded-3xl border border-[rgba(165,214,200,0.14)] overflow-hidden shadow-sm">
                 <div className="h-28 bg-gray-50 dark:bg-gray-800 relative w-full overflow-hidden">
-                   {/* FIX: Removed 'alt' text so broken images don't push the layout out of bounds */}
                    <img src={item.thumbnail_url || item.image_url || ''} className="w-full h-full object-cover block" alt="" />
                    <div className="absolute top-2 left-2">
-                     <RarityBadge tier={item.rarity} />
+                     <RarityBadge tier={item.rarity as any} />
                    </div>
                 </div>
                 <div className="p-3 w-full flex flex-col">
-                  {/* FIX: Using line-clamp prevents horizontal pushing bugs that truncate sometimes causes */}
                   <p className="text-xs font-bold text-[#2E2A28] dark:text-white line-clamp-1">{item.name}</p>
                   <p className="text-[10px] text-gray-400 line-clamp-1 mt-0.5">{item.character || 'HKDV'}</p>
                 </div>
