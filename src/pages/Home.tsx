@@ -172,9 +172,7 @@ function notificationIcon(type: string) {
   }
 }
 
-function KumoMascot({ mood = 'welcome', size = 80 }: { mood?: string; size?: number }) {
-  return <img src="/kumo-mascot.png" alt="Kumo" style={{ width: size, height: size }} className="object-contain" />;
-}
+function KumoMascot({ mood = 'welcome', size = 78 }: { mood?: 'welcome' | 'dreaming' | 'thinking'; size?: number }) {
   const eyeY = mood === 'dreaming' ? 40 : 39;
   const mouthPath =
     mood === 'dreaming'
