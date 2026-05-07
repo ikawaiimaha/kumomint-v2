@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from '@/pages/Home';
 import CatalogPage from '@/pages/CatalogPage';
 import WardrobePage from '@/pages/WardrobePage';
+import WishlistPage from '@/pages/WishlistPage'; // Added Wishlist import
 import CollectionPage from '@/pages/CollectionPage';
 import ProfilePage from '@/pages/ProfilePage';
 import OffersPage from '@/pages/OffersPage';
@@ -17,6 +18,10 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/catalog" element={<CatalogPage />} />
         <Route path="/wardrobe" element={<WardrobePage />} />
+        
+        {/* Added Wishlist Route for Dreamy Priority Tracking */}
+        <Route path="/wishlist" element={<WishlistPage />} />
+        
         <Route path="/collection" element={<CollectionPage />} />
         <Route path="/collection/:id" element={<CollectionPage />} />
         <Route path="/profile" element={<ProfilePage />} />
