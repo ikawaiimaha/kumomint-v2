@@ -455,7 +455,7 @@ export default function Home() {
                                   key={item.item_id}
                                   className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(165,214,200,0.14)] bg-white/[0.85] px-2 py-1 text-[11px] text-[#2E2A28]"
                                 >
-                                  <RarityBadge tier={item.rarity as any} size="xs" className="!px-1.5 !py-0 !text-[9px]" />
+                                  <RarityBadge tier={item.rarity as any} className="!px-1.5 !py-0 !text-[9px]" />
                                   <span className="max-w-[90px] truncate">{item.name}</span>
                                 </span>
                               ))}
@@ -532,7 +532,7 @@ export default function Home() {
                       )}
 
                       <div className="absolute left-2 top-2">
-                        <RarityBadge tier={item.rarity as any} size="xs" className="!px-1.5 !py-0.5 !text-[9px]" />
+                        <RarityBadge tier={item.rarity as any} className="!px-1.5 !py-0.5 !text-[9px]" />
                       </div>
 
                       <div className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/25 px-2 py-1 text-[10px] font-semibold text-white backdrop-blur-sm">
