@@ -35,8 +35,8 @@ export default function ProfilePage() {
   );
 
   return (
-    <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app-dark)] text-[var(--text-main-dark)]">
-      <header className="flex justify-between items-center mb-10">
+    <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app-dark)] text-[var(--text-main-dark)] overflow-hidden">
+      <header className="flex justify-between items-center mb-10 relative z-20">
         <h1 className="text-xl font-black uppercase tracking-tighter">My Orbit</h1>
         <div className="flex gap-4">
           <button onClick={toggleTheme} className="p-2.5 rounded-2xl bg-[var(--bg-card-dark)] border border-dashed border-[var(--accent)]/30">
@@ -49,19 +49,23 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      <main className="space-y-8">
+      <main className="space-y-8 relative">
+        {/* THE GLOWING MOON EFFECT */}
+        <div className="absolute -top-10 right-4 w-16 h-16 bg-[#FFF4D2] rounded-full shadow-[0_0_40px_rgba(255,244,210,0.6)] z-0" />
+
         {/*
           MAIN PROFILE CARD
           Inspired by image_6.png with clean white, large circular avatar,
-          and left-aligned text next to it.
+          and left-aligned text next to it. 
+          Added z-10 and mt-12 so it sits perfectly under the moon.
         */}
-        <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-black/10 relative overflow-hidden text-[#1A1A1A]">
+        <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-black/10 relative overflow-hidden text-[#1A1A1A] z-10 mt-12">
           {/* subtle mint background blur */}
           <div className="absolute -top-10 -left-10 w-32 h-32 bg-[var(--accent)] opacity-10 blur-3xl pointer-events-none" />
           
           <div className="flex items-center gap-6 mb-8 relative z-10">
             {/* LARGE CIRCULAR AVATAR (like image_6.png) */}
-            <div className="w-24 h-24 rounded-full border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)] bg-white">
+            <div className="w-24 h-24 rounded-full border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)] bg-white relative">
               <span className="text-4xl font-black text-[var(--accent)]">{username.charAt(0)}</span>
               {/* Added edit pencil near avatar from image_6.png */}
               <button onClick={() => navigate('/edit-profile')} className="absolute bottom-1 right-1 p-1.5 bg-[var(--accent)] text-white rounded-full">
@@ -112,8 +116,8 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Empty State Preview (using cute sad kumoru from step 1) */}
-        <div>
+        {/* Empty State Preview (using cute sad kumoru) */}
+        <div className="relative z-10">
            <div className="flex justify-between items-center mb-4 opacity-40">
              <h3 className="font-black text-sm uppercase">Recent Finds</h3>
              <Package size={16} />
