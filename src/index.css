@@ -2,53 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Add this to forcefully override any sneaky default fonts */
+/* 1. FORCE BUBBLY FONT
+  This section ensures any Vite default fonts are overridden.
+*/
 @layer base {
   html, body {
     font-family: 'Fredoka', sans-serif !important;
   }
 }
 
+/* 2. DEEP NIGHT SKY BACKGROUND
+  These variables set the app's background to a deep indigo and purple gradient
+  like your first inspiration picture.
+*/
 :root {
-  /* Light Mode - Soft Pink/Mint */
-  --bg-app: #FDF8F7;
-  --card-bg: rgba(255, 255, 255, 0.8);
-  --text-main: #2E2A28;
-  --accent: #7ED7C1;
-  --accent-glow: rgba(126, 215, 193, 0.3);
-  --nav-bg: rgba(255, 255, 255, 0.9);
+  --bg-app-dark: #07071F; /* Deep indigo/black */
+  --bg-card-dark: #12122F; /* Slightly lighter purple/blue for card areas */
+  --text-main-dark: #E6E6FF; /* Soft off-white for text on dark backgrounds */
+  --accent: #A389F4; /* Existing accent color */
+  
+  /* ... keep your existing light mode variables below ... */
 }
-
-.dark {
-  /* Moonie Mode - Deep Galaxy Inspiration */
-  --bg-app: #0F1123;         /* Deep Space Navy */
-  --card-bg: #1B1D3A;        /* Cosmic Purple Card */
-  --text-main: #FFF9E3;      /* Starlight Cream */
-  --accent: #A389F4;         /* Glowing Lavender */
-  --accent-glow: rgba(163, 137, 244, 0.5);
-  --nav-bg: #1A0B2E;         /* Deep Nebula Purple */
-  --btn-gradient: linear-gradient(90deg, #A389F4 0%, #FFB5C5 100%);
-}
-
-body {
-  background-color: var(--bg-app);
-  color: var(--text-main);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Inter', sans-serif;
-}
-
-/* The "Moonie" Glass Effect */
-.glass-panel {
-  background-color: var(--card-bg);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 32px;
-}
-
-.moonie-btn {
-  background: var(--btn-gradient, var(--accent));
-  box-shadow: 0 8px 20px var(--accent-glow);
-  transition: transform 0.2s ease;
-}
-
-.moonie-btn:active { transform: scale(0.95); }
