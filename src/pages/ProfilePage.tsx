@@ -3,7 +3,10 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Bell, Moon, Sun, Edit3, Sparkles, Clock, Package } from 'lucide-react';
+import { 
+  LogOut, Bell, Moon, Sun, Edit3, Sparkles, 
+  Clock, Package, Settings, ChevronRight 
+} from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth();
@@ -13,6 +16,7 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // 1. Declare fetch function
   const fetchProfile = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from('traders').select('username').eq('id', user.id).single();
@@ -25,76 +29,102 @@ export default function ProfilePage() {
   }, [fetchProfile]);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-primary)]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app-dark)] text-[var(--text-main-dark)]">
       <Sparkles className="animate-spin text-[var(--accent)]" />
     </div>
   );
 
   return (
-    <div className="min-h-screen pb-32 px-6 pt-6">
-      <header className="flex justify-between items-center mb-8">
+    <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app-dark)] text-[var(--text-main-dark)]">
+      <header className="flex justify-between items-center mb-10">
         <h1 className="text-xl font-black uppercase tracking-tighter">My Orbit</h1>
         <div className="flex gap-4">
-          <button onClick={toggleTheme} className="p-2 glass-card">
+          <button onClick={toggleTheme} className="p-2.5 rounded-2xl bg-[var(--bg-card-dark)] border border-dashed border-[var(--accent)]/30">
             {theme === 'dark' ? <Sun size={20} className="text-yellow-300" /> : <Moon size={20} />}
           </button>
-          <button onClick={() => navigate('/notifications')} className="p-2 glass-card relative">
+          <button onClick={() => navigate('/notifications')} className="p-2.5 rounded-2xl bg-[var(--bg-card-dark)] relative">
             <Bell size={20} />
-            <div className="absolute top-2 right-2 w-2 h-2 bg-pink-400 rounded-full border-2 border-[var(--bg-primary)]" />
+            <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-pink-400 rounded-full border-2 border-[var(--bg-app-dark)]" />
           </button>
         </div>
       </header>
 
-      <main className="space-y-6">
-        {/* Main Profile Card */}
-        <div className="glass-card p-8 text-center relative overflow-hidden">
-          {/* Subtle Glow Background */}
+      <main className="space-y-8">
+        {/*
+          MAIN PROFILE CARD
+          Inspired by image_6.png with clean white, large circular avatar,
+          and left-aligned text next to it.
+        */}
+        <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-black/10 relative overflow-hidden text-[#1A1A1A]">
+          {/* subtle mint background blur */}
           <div className="absolute -top-10 -left-10 w-32 h-32 bg-[var(--accent)] opacity-10 blur-3xl pointer-events-none" />
           
-          <div className="w-24 h-24 bg-[var(--bg-primary)] rounded-[32px] mx-auto mb-4 border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)]">
-            <span className="text-3xl font-black text-[var(--accent)]">{username.charAt(0)}</span>
-          </div>
+          <div className="flex items-center gap-6 mb-8 relative z-10">
+            {/* LARGE CIRCULAR AVATAR (like image_6.png) */}
+            <div className="w-24 h-24 rounded-full border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)] bg-white">
+              <span className="text-4xl font-black text-[var(--accent)]">{username.charAt(0)}</span>
+              {/* Added edit pencil near avatar from image_6.png */}
+              <button onClick={() => navigate('/edit-profile')} className="absolute bottom-1 right-1 p-1.5 bg-[var(--accent)] text-white rounded-full">
+                <Edit3 size={14} />
+              </button>
+            </div>
 
-          <h2 className="text-2xl font-black mb-1">{username}</h2>
-          <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-6 flex items-center justify-center gap-2">
-            <Clock size={12} /> Syncing with Stars
-          </p>
+            {/* LEFT-ALIGNED TEXT NEXT TO AVATAR */}
+            <div className="flex-1">
+              <h2 className="text-2xl font-black mb-1">{username}</h2>
+              <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest flex items-center gap-2">
+                <Clock size={12} /> Syncing with Stars
+              </p>
+            </div>
 
-          {/* Added relative z-10 here to ensure it stays clickable above backgrounds */}
-          <div className="flex gap-2 relative z-10">
-            {/* Added onClick here */}
+            {/* SETTINGS COG ICON (leads to edit persona) */}
             <button 
               onClick={() => navigate('/edit-profile')}
-              className="flex-1 py-3 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase shadow-lg shadow-[#A389F4]/20"
+              className="p-3 bg-[#F0EEFF] text-[var(--accent)] rounded-2xl self-start"
             >
-              <Edit3 size={14} className="inline mr-2" /> Edit Persona
-            </button>
-            <button onClick={() => { signOut(); navigate('/login'); }} className="p-3 glass-card text-red-400">
-              <LogOut size={18} />
+              <Settings size={20} />
             </button>
           </div>
+
+          {/* INTEGRATED STATS LIST (like image_6.png) 
+            Instead of separate cards, stats are clean list items.
+          */}
+          <div className="space-y-4 border-t border-[#F0EEFF] pt-6 mb-6">
+            <div className="flex justify-between items-center bg-[#F8F7FF] p-5 rounded-2xl">
+              <span className="text-sm font-black text-[#666666] uppercase tracking-wider">Total Mints</span>
+              <span className="text-xl font-black">{128}</span>
+            </div>
+            <div className="flex justify-between items-center bg-[#F8F7FF] p-5 rounded-2xl">
+              <span className="text-sm font-black text-[#666666] uppercase tracking-wider">Trades</span>
+              <span className="text-xl font-black">{14}</span>
+            </div>
+          </div>
+
+          {/* LOGOUT BUTTON as clean list item */}
+          <button 
+            onClick={() => { signOut(); navigate('/login'); }} 
+            className="w-full flex justify-between items-center p-5 bg-[#FFF0F0] text-red-500 rounded-2xl font-black text-xs uppercase"
+          >
+            <div className="flex items-center gap-3">
+              <LogOut size={18} /> Logout
+            </div>
+            <ChevronRight size={18} />
+          </button>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="glass-card p-6 text-center">
-            <p className="text-[10px] font-black opacity-30 uppercase mb-1">Total Mints</p>
-            <p className="text-2xl font-black">128</p>
-          </div>
-          <div className="glass-card p-6 text-center">
-            <p className="text-[10px] font-black opacity-30 uppercase mb-1">Trades</p>
-            <p className="text-2xl font-black">14</p>
-          </div>
-        </div>
-
-        {/* Empty State Preview */}
-        <div className="opacity-40">
-           <div className="flex justify-between items-center mb-4">
+        {/* Empty State Preview (using cute sad kumoru from step 1) */}
+        <div>
+           <div className="flex justify-between items-center mb-4 opacity-40">
              <h3 className="font-black text-sm uppercase">Recent Finds</h3>
              <Package size={16} />
            </div>
-           <div className="h-32 border-2 border-dashed border-[var(--border)] rounded-[32px] flex items-center justify-center">
-              <p className="text-[10px] font-black uppercase tracking-widest">No items in orbit</p>
+           <div className="py-8 flex flex-col items-center justify-center">
+              <img 
+                src="/kumo-sad.png" 
+                alt="Sad Kumoru" 
+                className="w-24 h-24 mb-4 drop-shadow-lg opacity-80" 
+              />
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-40">No items in orbit</p>
            </div>
         </div>
       </main>
