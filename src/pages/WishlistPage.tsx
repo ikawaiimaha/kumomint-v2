@@ -7,10 +7,10 @@ import {
   Trash2, 
   Sparkles, 
   Clock,
-  ChevronLeft
+  ChevronLeft,
+  Search
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-// Removed unused AnimatePresence
 
 interface WishlistItem {
   id: string;
@@ -21,7 +21,6 @@ interface WishlistItem {
     image_url: string;
     rarity: string;
     release_date: string;
-    is_sweet_collection: boolean;
   };
 }
 
@@ -39,13 +38,7 @@ export default function WishlistPage() {
     setLoading(true);
     const { data } = await supabase
       .from('wishlist')
-      .select(`
-        id,
-        priority,
-        item:items (
-          id, name, image_url, rarity, release_date, is_sweet_collection
-        )
-      `)
+      .select(`id, priority, item:items (id, name, image_url, rarity, release_date)`)
       .eq('trader_id', user?.id)
       .order('priority', { ascending: false });
 
@@ -53,21 +46,9 @@ export default function WishlistPage() {
     setLoading(false);
   };
 
-  const updatePriority = async (wishlistId: string, newPriority: number) => {
-    await supabase.from('wishlist').update({ priority: newPriority }).eq('id', wishlistId);
-    setWishlist(prev => prev.map(item => 
-      item.id === wishlistId ? { ...item, priority: newPriority } : item
-    ).sort((a, b) => b.priority - a.priority));
-  };
-
-  const removeFromWishlist = async (wishlistId: string) => {
-    await supabase.from('wishlist').delete().eq('id', wishlistId);
-    setWishlist(prev => prev.filter(item => item.id !== wishlistId));
-  };
-
-  const isLocked = (releaseDate: string) => {
-    const days = Math.floor((new Date().getTime() - new Date(releaseDate).getTime()) / (1000 * 3600 * 24));
-    return days < 14;
+  const removeFromWishlist = async (id: string) => {
+    await supabase.from('wishlist').delete().eq('id', id);
+    setWishlist(prev => prev.filter(item => item.id !== id));
   };
 
   return (
@@ -82,42 +63,44 @@ export default function WishlistPage() {
       <main className="px-6 space-y-4">
         {loading ? (
           <div className="flex justify-center py-20"><Sparkles className="animate-spin text-[#FFB5C5]" /></div>
-        ) : (
+        ) : wishlist.length > 0 ? (
           wishlist.map((wish) => (
             <div key={wish.id} className="bg-white rounded-[32px] p-4 shadow-sm border border-[#F0E6E4] flex items-center gap-4">
-              <div className="w-20 h-20 bg-[#F8F9FB] rounded-2xl flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+              <div className="w-20 h-20 bg-[#F8F9FB] rounded-2xl flex-shrink-0 flex items-center justify-center relative">
                 <img src={wish.item.image_url} className="w-16 h-16 object-contain" alt="" />
-                {isLocked(wish.item.release_date) && (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
+                {Math.floor((new Date().getTime() - new Date(wish.item.release_date).getTime()) / 86400000) < 14 && (
+                  <div className="absolute inset-0 bg-black/20 rounded-2xl flex items-center justify-center">
                     <Clock size={16} className="text-white" />
                   </div>
                 )}
               </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[8px] font-black bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-md uppercase">
-                    {wish.item.rarity}
-                  </span>
-                  {wish.priority === 4 && (
-                    <span className="text-[8px] font-black bg-[#7ED7C1] text-white px-1.5 py-0.5 rounded-md uppercase">Dreamy</span>
-                  )}
-                </div>
-                <h3 className="text-sm font-bold text-[#2E2A28] truncate">{wish.item.name}</h3>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-[#2E2A28]">{wish.item.name}</h3>
                 <div className="flex gap-1 mt-2">
                   {[1, 2, 3, 4].map((h) => (
-                    <button key={h} onClick={() => updatePriority(wish.id, h)}>
-                      <Heart size={18} className={cn("transition-colors", h <= wish.priority ? (wish.priority === 4 ? "fill-[#7ED7C1] text-[#7ED7C1]" : "fill-[#FFB5C5] text-[#FFB5C5]") : "text-gray-200")} />
-                    </button>
+                    <Heart key={h} size={14} className={cn(h <= wish.priority ? "fill-[#FFB5C5] text-[#FFB5C5]" : "text-gray-200")} />
                   ))}
                 </div>
               </div>
-
-              <button onClick={() => removeFromWishlist(wish.id)} className="p-2 text-gray-300 hover:text-red-400">
+              <button onClick={() => removeFromWishlist(wish.id)} className="text-gray-300 hover:text-red-400">
                 <Trash2 size={18} />
               </button>
             </div>
           ))
+        ) : (
+          <div className="text-center py-20 bg-white/40 border-2 border-dashed border-[#F0E6E4] rounded-[40px]">
+            <div className="w-16 h-16 bg-[#FFF5F7] rounded-full flex items-center justify-center mx-auto mb-4">
+              <Heart size={32} className="text-[#FFB5C5]" />
+            </div>
+            <p className="font-bold text-[#2E2A28]">Your wishlist is empty</p>
+            <p className="text-[11px] text-gray-400 mt-1 mb-6">Heart items in the catalog to add them!</p>
+            <button 
+              onClick={() => navigate('/catalog')}
+              className="bg-[#2E2A28] text-white px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-2 mx-auto"
+            >
+              <Search size={14} /> Explore Catalog
+            </button>
+          </div>
         )}
       </main>
     </div>
