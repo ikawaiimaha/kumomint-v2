@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import CatalogPage from './pages/CatalogPage';
 import WardrobePage from './pages/WardrobePage';
 import ProfilePage from './pages/ProfilePage';
+import EditProfile from './pages/EditProfile';
 import CreatorDashboard from './pages/CreatorDashboard';
 import NotificationsPage from './pages/NotificationsPage';
 import LoginPage from './pages/LoginPage';
@@ -49,6 +50,7 @@ export default function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/wardrobe" element={<WardrobePage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/edit-profile" element={<EditProfile />} />
                 <Route path="/creator" element={<CreatorDashboard />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
               </Route>
