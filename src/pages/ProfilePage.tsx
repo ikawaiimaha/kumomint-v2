@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
-  LogOut, Bell, Moon, Edit3, ShieldAlert, Heart, Sparkles, 
+  LogOut, Bell, Moon, Edit3, Sparkles, 
   Check, X, Camera, Info, Clock, Package 
 } from 'lucide-react';
 
@@ -19,10 +19,9 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [uploading, setUploading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    // Safety: If after 3 seconds we still have no user, stop spinning and go to login
     const timeout = setTimeout(() => {
       if (!user) setLoading(false);
     }, 3000);
@@ -50,7 +49,7 @@ export default function ProfilePage() {
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      setUploading(true);
+      setIsUploading(true);
       if (!event.target.files || event.target.files.length === 0) return;
       const file = event.target.files[0];
       const fileName = `${user?.id}-${Math.random()}.${file.name.split('.').pop()}`;
@@ -60,8 +59,9 @@ export default function ProfilePage() {
       
       await supabase.from('traders').update({ avatar_url: data.publicUrl, avatar_status: 'pending' }).eq('id', user?.id);
       setAvatarUrl(data.publicUrl);
+      setProfile((prev: any) => ({ ...prev, avatar_status: 'pending' }));
     } finally {
-      setUploading(false);
+      setIsUploading(false);
     }
   };
 
@@ -99,6 +99,7 @@ export default function ProfilePage() {
             <div onClick={() => isEditing && fileInputRef.current?.click()} className="w-20 h-20 bg-[#F8F9FB] rounded-[30px] flex items-center justify-center border-2 border-white relative overflow-hidden">
               {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" alt="" /> : <span className="text-3xl font-black text-gray-300">{username?.charAt(0).toUpperCase()}</span>}
               {isEditing && <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><Camera size={20} className="text-white" /></div>}
+              {isUploading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><Sparkles className="animate-spin text-[#7ED7C1]" size={20} /></div>}
             </div>
             <input type="file" ref={fileInputRef} onChange={uploadAvatar} className="hidden" accept="image/*" />
             <div className="flex-1">
@@ -106,7 +107,7 @@ export default function ProfilePage() {
               <><div className="flex items-center gap-2"><h2 className="text-2xl font-black">{profile?.username || 'kawaii'}</h2>{profile?.avatar_status === 'pending' && <Clock size={14} className="text-yellow-500" />}</div><p className="text-xs font-bold text-gray-300 italic">@{profile?.username}</p></>}
             </div>
           </div>
-          {isEditing ? <div className="space-y-4"><textarea className="w-full bg-[#F8F9FB] rounded-2xl p-4 text-xs font-bold min-h-[80px]" value={bio} onChange={e => setBio(e.target.value)} /><div className="bg-[#FEF9C3] p-4 rounded-2xl flex gap-3"><Info size={18} className="text-yellow-600 shrink-0 mt-0.5" /><p className="text-[10px] font-bold text-yellow-800">Only HKDV avatars are allowed. Manual approval required.</p></div><button onClick={async () => { await supabase.from('traders').update({ username, bio }).eq('id', user?.id); setIsEditing(false); fetchProfileData(); }} className="w-full bg-[#7ED7C1] text-white py-3 rounded-2xl font-black text-xs uppercase"><Check size={16} className="inline mr-2" /> Save</button></div> : 
+          {isEditing ? <div className="space-y-4"><textarea className="w-full bg-[#F8F9FB] rounded-2xl p-4 text-xs font-bold min-h-[80px]" value={bio} onChange={e => setBio(e.target.value)} /><div className="bg-[#FEF9C3] p-4 rounded-2xl flex gap-3"><Info size={18} className="text-yellow-600 shrink-0 mt-0.5" /><p className="text-[10px] font-bold text-yellow-800">Only HKDV avatars are allowed. Manual approval required.</p></div><button onClick={handleSave} className="w-full bg-[#7ED7C1] text-white py-3 rounded-2xl font-black text-xs uppercase"><Check size={16} className="inline mr-2" /> Save</button></div> : 
           <><p className="text-xs font-bold text-gray-400 mb-4">{profile?.bio || "No bio yet."}</p><button onClick={async () => { await signOut(); navigate('/login'); }} className="w-full flex items-center justify-between pt-4 border-t border-[#F8F9FB] text-red-300"><div className="flex items-center gap-3"><LogOut size={18} /><span className="text-sm font-bold">Sign Out</span></div></button></>}
         </div>
         {!isEditing && <div className="grid grid-cols-2 gap-3"><div className="bg-white p-5 rounded-[32px] border border-[#F0E6E4] shadow-sm text-center"><p className="text-[10px] font-bold text-gray-400 uppercase">Trades</p><p className="text-2xl font-black">0</p></div><div className="bg-white p-5 rounded-[32px] border border-[#F0E6E4] shadow-sm text-center"><p className="text-[10px] font-bold text-gray-400 uppercase">Mints</p><p className="text-2xl font-black">10</p></div></div>}
