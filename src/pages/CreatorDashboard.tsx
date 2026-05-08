@@ -56,7 +56,7 @@ export default function CreatorDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F0F7F6] pb-32">
-      <div className="p-6">
+      <div className="p-6 text-center">
         <h1 className="text-2xl font-black text-[#2E2A28]">Creator Studio</h1>
       </div>
 
@@ -80,7 +80,7 @@ export default function CreatorDashboard() {
             
             <div className="flex items-center gap-3 p-2">
               <input type="checkbox" checked={selfMint} onChange={() => setSelfMint(!selfMint)} className="w-5 h-5 accent-[#7ED7C1]" />
-              <label className="text-xs font-bold text-gray-400">Add 1 copy to my Wardrobe automatically</label>
+              <label className="text-xs font-bold text-gray-400">Add 1 copy to my Wardrobe</label>
             </div>
 
             <button onClick={handleMint} disabled={loading} className="w-full py-4 bg-[#2E2A28] text-white rounded-2xl font-black text-xs uppercase">{loading ? "MINTING..." : "MINT ITEM"}</button>
