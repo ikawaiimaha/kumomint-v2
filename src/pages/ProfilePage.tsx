@@ -10,7 +10,6 @@ import {
   ShieldAlert,
   Heart,
   Sparkles,
-  Package,
   Check,
   X,
   Camera,
@@ -68,12 +67,11 @@ export default function ProfilePage() {
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       const publicUrl = data.publicUrl;
 
-      // Update Database - Set status to 'pending' for manual approval
       const { error: updateError } = await supabase
         .from('traders')
         .update({ 
           avatar_url: publicUrl,
-          avatar_status: 'pending' // You can use this for your manual approval logic
+          avatar_status: 'pending' 
         })
         .eq('id', user?.id);
 
@@ -102,6 +100,11 @@ export default function ProfilePage() {
       setIsEditing(false);
     }
     setUploading(false);
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
   };
 
   if (loading) return (
@@ -154,7 +157,7 @@ export default function ProfilePage() {
             <div className="flex-1">
               {isEditing ? (
                 <input 
-                  className="w-full bg-[#F8F9FB] border-none rounded-xl px-3 py-2 text-sm font-bold"
+                  className="w-full bg-[#F8F9FB] border-none rounded-xl px-3 py-2 text-sm font-bold text-[#2E2A28]"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                 />
@@ -162,7 +165,7 @@ export default function ProfilePage() {
                 <>
                   <div className="flex items-center gap-2">
                     <h2 className="text-2xl font-black">{profile?.username || 'kawaii'}</h2>
-                    {profile?.avatar_status === 'pending' && <Clock size={14} className="text-yellow-500" title="Avatar pending approval" />}
+                    {profile?.avatar_status === 'pending' && <Clock size={14} className="text-yellow-500" />}
                   </div>
                   <p className="text-xs font-bold text-gray-300 italic">@{profile?.username || 'kawaii'}</p>
                 </>
@@ -173,7 +176,7 @@ export default function ProfilePage() {
           <div className="mb-4">
             {isEditing ? (
               <textarea 
-                className="w-full bg-[#F8F9FB] border-none rounded-2xl px-4 py-3 text-xs font-bold min-h-[80px]"
+                className="w-full bg-[#F8F9FB] border-none rounded-2xl px-4 py-3 text-xs font-bold text-gray-500 min-h-[80px]"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="Add a bio..."
@@ -185,7 +188,6 @@ export default function ProfilePage() {
 
           {isEditing ? (
             <div className="space-y-4">
-              {/* --- THE NOTE FOR HKDV & APPROVAL --- */}
               <div className="bg-[#FEF9C3] p-4 rounded-2xl flex gap-3 items-start border border-[#FEF08A]">
                 <Info size={18} className="text-yellow-600 shrink-0 mt-0.5" />
                 <p className="text-[10px] font-bold text-yellow-800 leading-tight">
@@ -208,7 +210,10 @@ export default function ProfilePage() {
                 </div>
               </div>
               <button onClick={handleLogout} className="w-full flex items-center justify-between pt-4 border-t border-[#F8F9FB]">
-                <div className="flex items-center gap-3 text-red-300"><LogOut size={18} /><span className="text-sm font-bold">Sign Out</span></div>
+                <div className="flex items-center gap-3 text-red-300">
+                  <LogOut size={18} />
+                  <span className="text-sm font-bold">Sign Out</span>
+                </div>
               </button>
             </>
           )}
