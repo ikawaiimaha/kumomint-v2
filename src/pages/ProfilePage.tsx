@@ -3,174 +3,149 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Settings, 
   LogOut, 
-  Package, 
-  Heart, 
-  Award, 
-  ShieldCheck,
+  Bell, 
+  Moon, 
+  Edit3, 
   ChevronRight,
-  Sparkles,
-  Star
+  ShieldAlert,
+  Heart,
+  Package,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
-
-const TIER_NAMES = ["Sticker", "Charm", "Treasure", "Dream", "Legendary"];
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
-  const [stats, setStats] = useState({ inventory: 0, wishlist: 0, trades: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) fetchProfileData();
+    if (user) fetchProfile();
   }, [user]);
 
-  const fetchProfileData = async () => {
+  const fetchProfile = async () => {
     setLoading(true);
-    
-    // 1. Fetch Trader Details
-    const { data: trader } = await supabase
+    const { data } = await supabase
       .from('traders')
       .select('*')
       .eq('id', user?.id)
       .single();
-    
-    if (trader) setProfile(trader);
-
-    // 2. Fetch Collection Stats
-    const [invCount, wishCount, tradeCount] = await Promise.all([
-      supabase.from('inventory').select('*', { count: 'exact', head: true }).eq('trader_id', user?.id),
-      supabase.from('wishlist').select('*', { count: 'exact', head: true }).eq('trader_id', user?.id),
-      supabase.from('trades').select('*', { count: 'exact', head: true }).eq('sender_id', user?.id).eq('status', 'completed')
-    ]);
-
-    setStats({
-      inventory: invCount.count || 0,
-      wishlist: wishCount.count || 0,
-      trades: tradeCount.count || 0
-    });
-
+    if (data) setProfile(data);
     setLoading(false);
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#FDF8F7] flex items-center justify-center">
-      <Sparkles className="animate-spin text-[#7ED7C1]" />
-    </div>
-  );
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   return (
     <div className="min-h-screen bg-[#FDF8F7] pb-24">
-      {/* --- PROFILE HEADER --- */}
-      <div className="bg-white px-6 pt-12 pb-8 rounded-b-[50px] shadow-sm relative overflow-hidden">
-        {/* Decorative Background Circles */}
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#7ED7C1]/10 rounded-full" />
-        <div className="absolute top-20 -left-10 w-20 h-20 bg-[#FFB5C5]/10 rounded-full" />
-
-        <div className="flex justify-between items-start mb-6 relative z-10">
-          <button onClick={() => navigate('/settings')} className="p-2 bg-[#F8F9FB] rounded-full">
-            <Settings size={20} className="text-[#2E2A28]" />
+      {/* --- TOP BAR --- */}
+      <div className="p-6 flex justify-between items-center">
+        <h1 className="text-xl font-black text-[#2E2A28]">My Profile</h1>
+        <div className="flex gap-4">
+          <button className="text-gray-400"><Moon size={22} /></button>
+          <button className="text-gray-400 relative">
+            <Bell size={22} />
+            <span className="absolute top-0 right-0 w-2 h-2 bg-[#FFB5C5] rounded-full border-2 border-white" />
           </button>
-          <button onClick={() => signOut()} className="p-2 bg-[#FFF5F7] rounded-full text-red-400">
-            <LogOut size={20} />
+          {/* --- ADDED LOGOUT BUTTON --- */}
+          <button 
+            onClick={handleLogout}
+            className="text-red-300 hover:text-red-500 transition-colors"
+          >
+            <LogOut size={22} />
           </button>
-        </div>
-
-        <div className="flex flex-col items-center text-center relative z-10">
-          <div className="w-24 h-24 rounded-[35px] bg-[#F8F9FB] border-4 border-white shadow-xl mb-4 overflow-hidden">
-            <img 
-              src={profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.id}`} 
-              alt="Avatar" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <h1 className="text-2xl font-black text-[#2E2A28] mb-1">{profile?.username || 'Trader'}</h1>
-          <div className="flex items-center gap-1.5 bg-[#E8F4F1] px-3 py-1 rounded-full">
-            <ShieldCheck size={14} className="text-[#4E927E]" />
-            <span className="text-[10px] font-black text-[#4E927E] uppercase tracking-widest">Clean Record</span>
-          </div>
         </div>
       </div>
 
-      <main className="px-6 -mt-6">
-        {/* --- TIER PROGRESS CARD --- */}
-        <section className="bg-gradient-to-br from-[#2E2A28] to-[#45403E] rounded-[32px] p-6 text-white shadow-lg mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-60">Status</p>
-              <h2 className="text-xl font-black italic tracking-tighter">
-                {TIER_NAMES[profile?.tier - 1] || 'Sticker'}
-              </h2>
-            </div>
-            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center border border-white/20">
-              <Star size={24} className="fill-yellow-400 text-yellow-400" />
-            </div>
-          </div>
+      <main className="px-5 space-y-6">
+        {/* --- USER CARD --- */}
+        <div className="bg-white rounded-[40px] p-6 shadow-sm border border-[#F0E6E4] relative">
+          <button className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full text-gray-400">
+            <Edit3 size={18} />
+          </button>
           
-          <div className="bg-white/10 h-3 rounded-full overflow-hidden mb-2">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: `${(profile?.xp / 18000) * 100}%` }}
-              className="h-full bg-[#7ED7C1] rounded-full shadow-[0_0_15px_rgba(126,215,193,0.6)]"
-            />
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-20 h-20 bg-[#F8F9FB] rounded-[30px] flex items-center justify-center text-3xl font-black text-gray-300 border-2 border-white shadow-inner relative">
+              {profile?.username?.charAt(0).toUpperCase() || 'K'}
+              <div className="absolute bottom-1 right-1 w-4 h-4 bg-[#A389F4] rounded-full border-2 border-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-[#2E2A28]">{profile?.username || 'kawaii'}</h2>
+              <p className="text-xs font-bold text-gray-300 italic">@{profile?.username || 'kawaii'}</p>
+              <div className="flex gap-2 mt-2">
+                <span className="bg-[#EBE5FF] text-[#A389F4] text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
+                  <Moon size={10} className="fill-[#A389F4]" /> Dreaming
+                </span>
+                <span className="bg-[#F8F9FB] text-gray-300 text-[10px] font-black px-3 py-1 rounded-full">
+                  Tickets + Gifts
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-[9px] font-bold opacity-60 uppercase">{profile?.xp} XP EARNED</span>
-            <span className="text-[9px] font-black text-[#7ED7C1] uppercase tracking-widest">NEXT TIER: {TIER_NAMES[profile?.tier] || 'MAX'}</span>
+
+          <div className="flex gap-3 mb-4">
+            <div className="flex items-center gap-1.5 bg-[#F8F9FB] px-3 py-1.5 rounded-full text-[10px] font-bold text-gray-400">
+              <ShieldAlert size={14} /> Not Verified
+            </div>
+            <div className="flex items-center gap-1.5 bg-[#F8F9FB] px-3 py-1.5 rounded-full text-[10px] font-bold text-gray-400">
+              <Heart size={14} className="fill-red-200 text-red-300" /> 0 likes
+            </div>
           </div>
-        </section>
+
+          <p className="text-xs text-gray-400 font-medium leading-relaxed">
+            {profile?.bio || "Add a short bio so other traders know your style."}
+          </p>
+          <p className="text-[10px] text-gray-300 font-bold uppercase mt-4 tracking-widest">
+            Joined {new Date(profile?.created_at || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </p>
+        </div>
 
         {/* --- STATS GRID --- */}
-        <div className="grid grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-2 gap-3">
           {[
-            { label: 'Items', value: stats.inventory, icon: <Package size={16} />, color: 'bg-blue-50 text-blue-500' },
-            { label: 'Wishes', value: stats.wishlist, icon: <Heart size={16} />, color: 'bg-pink-50 text-pink-500' },
-            { label: 'Swaps', value: stats.trades, icon: <Award size={16} />, color: 'bg-purple-50 text-purple-500' },
-          ].map((stat, i) => (
-            <div key={i} className="bg-white p-4 rounded-[28px] border border-[#F0E6E4] text-center shadow-sm">
-              <div className={cn("w-8 h-8 rounded-xl mx-auto mb-2 flex items-center justify-center", stat.color)}>
-                {stat.icon}
-              </div>
-              <p className="text-lg font-black text-[#2E2A28] leading-none">{stat.value}</p>
-              <p className="text-[9px] font-bold text-gray-400 uppercase mt-1">{stat.label}</p>
+            { label: 'Total Trades', val: 0 },
+            { label: 'Completed Trades', val: 0 },
+            { label: 'Login Streak', val: 1 },
+            { label: 'Dream Mints', val: 10 },
+          ].map((s, i) => (
+            <div key={i} className="bg-white p-5 rounded-[32px] border border-[#F0E6E4] shadow-sm">
+              <p className="text-[10px] font-bold text-gray-300 uppercase mb-1">{s.label}</p>
+              <p className="text-2xl font-black text-[#2E2A28]">{s.val}</p>
             </div>
           ))}
         </div>
 
-        {/* --- MENU LINKS --- */}
-        <div className="space-y-3">
-          <button 
-            onClick={() => navigate('/wardrobe')}
-            className="w-full bg-white p-5 rounded-[28px] flex items-center justify-between border border-[#F0E6E4] active:scale-[0.98] transition-transform shadow-sm"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-gray-50 rounded-xl text-gray-400"><Package size={20} /></div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-[#2E2A28]">My Collection</p>
-                <p className="text-[10px] text-gray-400 font-medium">Manage your items and padlocks</p>
+        {/* --- INVENTORY PREVIEW --- */}
+        <section>
+          <div className="flex justify-between items-center mb-4 px-1">
+            <h3 className="font-black text-[#2E2A28]">Inventory Preview</h3>
+            <button onClick={() => navigate('/wardrobe')} className="text-[10px] font-bold text-[#4E927E] uppercase tracking-widest">Open Wardrobe</button>
+          </div>
+          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+            {[1, 2, 3].map((_, i) => (
+              <div key={i} className="min-w-[140px] aspect-square bg-white rounded-[32px] border border-[#F0E6E4] p-2 flex flex-col shadow-sm">
+                <div className="flex-1 bg-gradient-to-br from-[#F5EAFF] to-[#E5D4FF] rounded-2xl flex items-center justify-center relative overflow-hidden">
+                  <Package size={32} className="text-white opacity-40" />
+                  <div className="absolute top-2 left-2 bg-white/40 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md backdrop-blur-sm">SUPER</div>
+                  <div className="absolute bottom-2 left-2 bg-black/10 text-white text-[8px] font-black px-2 py-1 rounded-full">x9</div>
+                </div>
               </div>
-            </div>
-            <ChevronRight size={18} className="text-gray-300" />
-          </button>
+            ))}
+          </div>
+        </section>
 
-          <button 
-            onClick={() => navigate('/wishlist')}
-            className="w-full bg-white p-5 rounded-[28px] flex items-center justify-between border border-[#F0E6E4] active:scale-[0.98] transition-transform shadow-sm"
-          >
-            <div className="flex items-center gap-4">
-              <div className="p-2 bg-pink-50 rounded-xl text-[#FFB5C5]"><Heart size={20} /></div>
-              <div className="text-left">
-                <p className="text-sm font-bold text-[#2E2A28]">Dreamy Wishlist</p>
-                <p className="text-[10px] text-gray-400 font-medium">Adjust 4-heart priority</p>
-              </div>
-            </div>
-            <ChevronRight size={18} className="text-gray-300" />
-          </button>
-        </div>
+        {/* --- LOG OUT FOOTER (Optional Alternative) --- */}
+        <button 
+          onClick={handleLogout}
+          className="w-full py-4 text-xs font-black text-red-300 uppercase tracking-[0.2em] border-t border-[#F0E6E4] mt-8 opacity-50 hover:opacity-100 transition-opacity"
+        >
+          Sign Out of Kumomint
+        </button>
       </main>
     </div>
   );
