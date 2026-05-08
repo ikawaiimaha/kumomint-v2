@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Bell, Package, Heart, ChevronRight, Sparkles, LogIn } from 'lucide-react';
@@ -11,7 +11,6 @@ export default function Home() {
   const navigate = useNavigate();
   const [xp] = useState(25); 
 
-  // --- 1. THE LOADING STATE ---
   if (loading) return (
     <div className="min-h-screen bg-[#FDF8F7] flex flex-col items-center justify-center">
       <Sparkles className="animate-spin text-[#7ED7C1] mb-4" size={40} />
@@ -19,7 +18,6 @@ export default function Home() {
     </div>
   );
 
-  // --- 2. THE "NO USER" FALLBACK (Fixes the blank screen!) ---
   if (!user) return (
     <div className="min-h-screen bg-[#FDF8F7] flex flex-col items-center justify-center p-10 text-center">
       <div className="w-20 h-20 bg-white rounded-[32px] flex items-center justify-center shadow-sm mb-6">
@@ -36,7 +34,6 @@ export default function Home() {
     </div>
   );
 
-  // --- 3. THE ACTUAL HOME PAGE ---
   const currentTierIndex = Math.min(Math.floor(xp / 100), 4);
   const progressToNext = xp % 100;
 
