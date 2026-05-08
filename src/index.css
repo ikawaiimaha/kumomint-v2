@@ -3,32 +3,45 @@
 @tailwind utilities;
 
 :root {
-  /* Light Mode - Soft Cream/Pink */
-  --bg-primary: #FDF8F7;
-  --card-bg: #FFFFFF;
+  /* Light Mode - Soft Pink/Mint */
+  --bg-app: #FDF8F7;
+  --card-bg: rgba(255, 255, 255, 0.8);
   --text-main: #2E2A28;
   --accent: #7ED7C1;
-  --border: #F0E6E4;
+  --accent-glow: rgba(126, 215, 193, 0.3);
+  --nav-bg: rgba(255, 255, 255, 0.9);
 }
 
 .dark {
-  /* Galaxy Mode - Moonie Inspiration */
-  --bg-primary: #0F1123;      /* Deep Cosmic Navy */
-  --card-bg: #1B1D3A;        /* Galaxy Purple Card */
-  --text-main: #FFF9E3;      /* Star-light Cream */
+  /* Moonie Mode - Deep Galaxy Inspiration */
+  --bg-app: #0F1123;         /* Deep Space Navy */
+  --card-bg: #1B1D3A;        /* Cosmic Purple Card */
+  --text-main: #FFF9E3;      /* Starlight Cream */
   --accent: #A389F4;         /* Glowing Lavender */
-  --border: #2D1B4E;         /* Deep Nebula Purple */
+  --accent-glow: rgba(163, 137, 244, 0.5);
+  --nav-bg: #1A0B2E;         /* Deep Nebula Purple */
+  --btn-gradient: linear-gradient(90deg, #A389F4 0%, #FFB5C5 100%);
 }
 
 body {
-  background-color: var(--bg-primary);
+  background-color: var(--bg-app);
   color: var(--text-main);
-  transition: background-color 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Inter', sans-serif;
 }
 
-/* Custom "Glass" effect for cards */
-.glass-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
+/* The "Moonie" Glass Effect */
+.glass-panel {
+  background-color: var(--card-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 32px;
 }
+
+.moonie-btn {
+  background: var(--btn-gradient, var(--accent));
+  box-shadow: 0 8px 20px var(--accent-glow);
+  transition: transform 0.2s ease;
+}
+
+.moonie-btn:active { transform: scale(0.95); }
