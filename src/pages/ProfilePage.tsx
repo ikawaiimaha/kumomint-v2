@@ -10,8 +10,7 @@ import {
   ShieldAlert,
   Heart,
   Sparkles,
-  Package,
-  Clock
+  Package
 } from 'lucide-react';
 
 interface ProfileStats {
