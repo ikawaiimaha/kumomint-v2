@@ -14,7 +14,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-[#F0E6E4] px-6 py-3 pb-8 flex justify-between items-center z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#1A0B2E]/90 backdrop-blur-md border-t border-[#F0E6E4] dark:border-[#483475] px-6 py-3 pb-8 flex justify-between items-center z-50">
       {navItems.map((item) => {
         const isActive = location.pathname === item.path;
         const Icon = item.icon;
@@ -27,10 +27,10 @@ export default function BottomNav() {
           >
             <Icon 
               size={24} 
-              className={`transition-all ${isActive ? "text-[#7ED7C1] scale-110" : "text-gray-300"}`} 
+              className={`transition-all ${isActive ? "text-[#7ED7C1] dark:text-[#A389F4] scale-110" : "text-gray-300 dark:text-[#483475]"}`} 
             />
             {isActive && (
-              <div className="absolute -bottom-2 w-1 h-1 bg-[#7ED7C1] rounded-full" />
+              <div className="absolute -bottom-2 w-1 h-1 bg-[#7ED7C1] dark:bg-[#A389F4] rounded-full" />
             )}
           </button>
         );
