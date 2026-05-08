@@ -13,20 +13,20 @@ export default function NotificationsPage() {
         <h1 className="text-xl font-black text-[#2E2A28] dark:text-[#FFF9E3]">Activity</h1>
       </header>
 
-      <main className="px-6 space-y-4 text-center">
-        <div className="bg-white dark:bg-[#2D1B4E] p-5 rounded-[32px] border border-[#F0E6E4] dark:border-[#483475] flex gap-4 text-left">
+      <main className="px-6 space-y-4">
+        <div className="bg-white dark:bg-[#2D1B4E] p-5 rounded-[32px] border border-[#F0E6E4] dark:border-[#483475] flex gap-4">
           <div className="w-10 h-10 bg-[#F0F7F6] dark:bg-[#1A0B2E] rounded-2xl flex items-center justify-center text-[#7ED7C1] dark:text-[#A389F4]">
             <Bell size={20} />
           </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-black text-[#2E2A28] dark:text-[#E0D7FF]">Welcome!</h3>
-            <p className="text-[11px] font-bold text-gray-400 dark:text-[#A389F4] mt-1">Start your collection by visiting the catalog.</p>
+          <div className="flex-1 text-left">
+            <h3 className="text-sm font-black text-[#2E2A28] dark:text-[#E0D7FF]">Welcome to Kumomint!</h3>
+            <p className="text-[11px] font-bold text-gray-400 dark:text-[#A389F4] mt-1">Start exploring the catalog to find your first Happy Bag.</p>
           </div>
         </div>
         
-        <div className="py-20 opacity-20 dark:text-[#A389F4]">
+        <div className="text-center py-20 opacity-20 dark:text-[#A389F4]">
           <Sparkles size={40} className="mx-auto mb-4" />
-          <p className="text-[10px] font-black uppercase tracking-widest">No new alerts</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-center">No new alerts</p>
         </div>
       </main>
     </div>
