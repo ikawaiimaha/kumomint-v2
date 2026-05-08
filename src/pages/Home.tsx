@@ -4,70 +4,61 @@ import { useAuth } from '../contexts/AuthContext';
 import { Bell, Package, Heart, ChevronRight, Sparkles, LogIn } from 'lucide-react';
 
 const TIER_NAMES = ["Daydream", "Reverie", "Lucid", "Ethereal", "Celestial"];
-const TIER_COLORS = ["bg-[#7ED7C1]", "bg-[#A389F4]", "bg-[#FFB5C5]", "bg-[#93C5FD]", "bg-[#FCD34D]"];
 
 export default function Home() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [xp] = useState(25); 
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#FDF8F7] flex flex-col items-center justify-center">
-      <Sparkles className="animate-spin text-[#7ED7C1] mb-4" size={40} />
-      <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 text-center">Entering the Dream...</p>
-    </div>
-  );
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)]"><Sparkles className="animate-spin text-[var(--accent)]" /></div>;
 
   if (!user) return (
-    <div className="min-h-screen bg-[#FDF8F7] flex flex-col items-center justify-center p-10 text-center">
-      <div className="w-20 h-20 bg-white rounded-[32px] flex items-center justify-center shadow-sm mb-6">
-        <Package size={32} className="text-[#7ED7C1]" />
+    <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center">
+      <div className="w-20 h-20 glass-panel flex items-center justify-center mb-8 shadow-xl">
+        <Package size={32} className="text-[var(--accent)]" />
       </div>
-      <h2 className="text-xl font-black text-[#2E2A28] mb-2 text-center">Welcome to Kumomint</h2>
-      <p className="text-xs font-bold text-gray-400 mb-8 leading-relaxed text-center">Login to start trading and building your dream wardrobe!</p>
-      <button 
-        onClick={() => navigate('/login')}
-        className="w-full py-4 bg-[#2E2A28] text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2"
-      >
+      <h2 className="text-2xl font-black mb-2">Kumomint</h2>
+      <p className="text-xs font-bold opacity-50 mb-10">Building your collection among the stars.</p>
+      <button onClick={() => navigate('/login')} className="w-full py-4 moonie-btn text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2">
         <LogIn size={16} /> Sign In
       </button>
     </div>
   );
 
-  const currentTierIndex = Math.min(Math.floor(xp / 100), 4);
-  const progressToNext = xp % 100;
-
   return (
-    <div className="min-h-screen bg-[#FDF8F7] pb-32 px-6 pt-6">
-      <div className="flex justify-between items-center mb-8 mt-2">
-        <h1 className="text-2xl font-black text-[#2E2A28]">KUMOMINT</h1>
-        <button onClick={() => navigate('/notifications')} className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-[#F0E6E4] relative text-gray-400">
+    <div className="min-h-screen pb-32 px-6 pt-6">
+      <header className="flex justify-between items-center mb-10">
+        <h1 className="text-2xl font-black tracking-tighter">KUMOMINT</h1>
+        <button onClick={() => navigate('/notifications')} className="w-12 h-12 glass-panel flex items-center justify-center relative text-gray-400">
           <Bell size={20} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-[#FFB5C5] rounded-full border-2 border-white"></span>
+          <span className="absolute top-3 right-3 w-2 h-2 bg-pink-400 rounded-full border-2 border-[var(--bg-app)]"></span>
         </button>
-      </div>
+      </header>
 
-      <div className={`${TIER_COLORS[currentTierIndex]} p-6 rounded-[32px] text-white relative overflow-hidden mb-8 shadow-sm`}>
-        <h2 className="text-xl font-black mb-3">{TIER_NAMES[currentTierIndex]}</h2>
-        <div className="h-2 w-full bg-black/10 rounded-full overflow-hidden">
-          <div className="h-full bg-white/80 transition-all duration-1000" style={{ width: `${progressToNext}%` }} />
+      {/* Hero Card */}
+      <div className="glass-panel p-8 relative overflow-hidden mb-8 border-none shadow-2xl">
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-[var(--accent)] opacity-20 blur-3xl"></div>
+        <h2 className="text-xs font-black uppercase tracking-[0.2em] opacity-40 mb-2">Current Tier</h2>
+        <p className="text-3xl font-black mb-6">{TIER_NAMES[0]}</p>
+        <div className="h-2 w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+          <div className="h-full bg-[var(--accent)] transition-all duration-1000 shadow-[0_0_10px_var(--accent-glow)]" style={{ width: `${xp}%` }} />
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <button onClick={() => navigate('/wardrobe')} className="bg-[#EEF2FF] p-6 rounded-[32px] border border-blue-50 flex flex-col items-center gap-3 active:scale-95 transition-transform">
-          <div className="p-2 bg-white rounded-xl shadow-sm"><Package size={20} className="text-blue-400" /></div>
-          <span className="font-black text-[10px] uppercase text-[#2E2A28]">Wardrobe</span>
+      <div className="grid grid-cols-2 gap-4 mb-10">
+        <button onClick={() => navigate('/wardrobe')} className="glass-panel p-6 flex flex-col items-center gap-4 active:scale-95 transition-transform">
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-2xl"><Package size={24} className="text-blue-400" /></div>
+          <span className="font-black text-[10px] uppercase tracking-widest">Wardrobe</span>
         </button>
-        <button onClick={() => navigate('/wishlist')} className="bg-[#FFF0F3] p-6 rounded-[32px] border border-pink-50 flex flex-col items-center gap-3 active:scale-95 transition-transform">
-          <div className="p-2 bg-white rounded-xl shadow-sm"><Heart size={20} className="text-pink-400" /></div>
-          <span className="font-black text-[10px] uppercase text-[#2E2A28]">Wishlist</span>
+        <button onClick={() => navigate('/wishlist')} className="glass-panel p-6 flex flex-col items-center gap-4 active:scale-95 transition-transform">
+          <div className="p-3 bg-pink-50 dark:bg-pink-900/30 rounded-2xl"><Heart size={24} className="text-pink-400" /></div>
+          <span className="font-black text-[10px] uppercase tracking-widest">Wishlist</span>
         </button>
       </div>
 
       <div className="flex justify-between items-center px-1">
-        <h3 className="font-black text-lg text-[#2E2A28]">New Collections</h3>
-        <ChevronRight size={20} className="text-gray-300" />
+        <h3 className="font-black text-lg">In Orbit Now</h3>
+        <ChevronRight size={20} className="opacity-20" />
       </div>
     </div>
   );
