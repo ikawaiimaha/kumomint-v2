@@ -10,8 +10,7 @@ import {
   Cloud, 
   Bell, 
   ChevronRight,
-  Package,
-  Star
+  Package
 } from 'lucide-react';
 
 interface PerfectMatch {
