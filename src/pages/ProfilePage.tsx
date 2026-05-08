@@ -14,7 +14,8 @@ import {
   X,
   Camera,
   Info,
-  Clock
+  Clock,
+  Package // <--- Re-added this to prevent the crash!
 } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -118,8 +119,13 @@ export default function ProfilePage() {
       <div className="p-6 flex justify-between items-center">
         <h1 className={`text-xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>My Profile</h1>
         <div className="flex gap-4">
-          <button onClick={() => setIsDark(!isDark)} className="text-gray-400"><Moon size={22} /></button>
-          <button onClick={() => navigate('/notifications')} className="text-gray-400"><Bell size={22} /></button>
+          <button onClick={() => setIsDark(!isDark)} className="text-gray-400 active:scale-90 transition-transform">
+            <Moon size={22} className={isDark ? 'fill-yellow-400 text-yellow-400' : ''} />
+          </button>
+          <button onClick={() => navigate('/notifications')} className="text-gray-400 relative">
+            <Bell size={22} />
+            <span className="absolute top-0 right-0 w-2 h-2 bg-[#FFB5C5] rounded-full border-2 border-white" />
+          </button>
         </div>
       </div>
 
@@ -141,7 +147,7 @@ export default function ProfilePage() {
               {avatarUrl ? (
                 <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
               ) : (
-                <span className="text-3xl font-black text-gray-300">{username?.charAt(0).toUpperCase()}</span>
+                <span className="text-3xl font-black text-gray-300">{username?.charAt(0).toUpperCase() || 'K'}</span>
               )}
               
               {isEditing && (
@@ -164,7 +170,7 @@ export default function ProfilePage() {
               ) : (
                 <>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-2xl font-black">{profile?.username || 'kawaii'}</h2>
+                    <h2 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>{profile?.username || 'kawaii'}</h2>
                     {profile?.avatar_status === 'pending' && <Clock size={14} className="text-yellow-500" />}
                   </div>
                   <p className="text-xs font-bold text-gray-300 italic">@{profile?.username || 'kawaii'}</p>
@@ -221,15 +227,31 @@ export default function ProfilePage() {
 
         {!isEditing && (
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-white p-5 rounded-[32px] border border-[#F0E6E4] shadow-sm">
+            <div className={`p-5 rounded-[32px] border shadow-sm ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'}`}>
               <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Total Trades</p>
-              <p className="text-2xl font-black text-[#2E2A28]">0</p>
+              <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>0</p>
             </div>
-            <div className="bg-white p-5 rounded-[32px] border border-[#F0E6E4] shadow-sm">
+            <div className={`p-5 rounded-[32px] border shadow-sm ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'}`}>
               <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Dream Mints</p>
-              <p className="text-2xl font-black text-[#2E2A28]">10</p>
+              <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>10</p>
             </div>
           </div>
+        )}
+
+        {/* Inventory Preview */}
+        {!isEditing && (
+          <section>
+            <div className="flex justify-between items-center mb-4 px-1">
+              <h3 className={`font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>Inventory Preview</h3>
+              <button onClick={() => navigate('/wardrobe')} className="text-[10px] font-black text-[#4E927E] uppercase tracking-widest">Open Wardrobe</button>
+            </div>
+            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+              <div className={`min-w-[140px] aspect-square rounded-[32px] border ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'} p-2 flex flex-col items-center justify-center opacity-30`}>
+                <Package size={32} className="text-gray-300 mb-2" />
+                <p className="text-[8px] font-black uppercase">No Items</p>
+              </div>
+            </div>
+          </section>
         )}
       </main>
     </div>
