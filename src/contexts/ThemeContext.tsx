@@ -16,7 +16,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     localStorage.setItem('kumomint-theme', theme);
-    // This adds/removes the "dark" class from the very top of your HTML
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
