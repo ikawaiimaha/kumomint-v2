@@ -18,8 +18,8 @@ export default function NotificationsPage() {
           <div className="w-10 h-10 bg-[#F0F7F6] dark:bg-[#1A0B2E] rounded-2xl flex items-center justify-center text-[#7ED7C1] dark:text-[#A389F4]">
             <Bell size={20} />
           </div>
-          <div className="flex-1 text-left">
-            <h3 className="text-sm font-black text-[#2E2A28] dark:text-[#E0D7FF]">Welcome to Kumomint!</h3>
+          <div className="flex-1">
+            <h3 className="text-sm font-black text-[#2E2A28] dark:text-[#E0D7FF]">Welcome!</h3>
             <p className="text-[11px] font-bold text-gray-400 dark:text-[#A389F4] mt-1">Start exploring the catalog to find your first Happy Bag.</p>
           </div>
         </div>
