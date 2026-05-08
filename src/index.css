@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Add this to forcefully override any sneaky default fonts */
+@layer base {
+  html, body {
+    font-family: 'Fredoka', sans-serif !important;
+  }
+}
+
 :root {
   /* Light Mode - Soft Pink/Mint */
   --bg-app: #FDF8F7;
