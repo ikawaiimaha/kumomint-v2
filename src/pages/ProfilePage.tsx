@@ -3,33 +3,18 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
-  LogOut, 
-  Bell, 
-  Moon, 
-  Edit3, 
-  ShieldAlert,
-  Heart,
-  Sparkles,
-  Check,
-  X,
-  Camera,
-  Info,
-  Clock,
-  Package 
+  LogOut, Bell, Moon, Edit3, ShieldAlert, Heart, Sparkles, 
+  Check, X, Camera, Info, Clock, Package 
 } from 'lucide-react';
 
 export default function ProfilePage() {
-  const auth = useAuth();
-  const user = auth?.user;
-  const signOut = auth?.signOut;
-  
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isDark, setIsDark] = useState(false);
-  
   const [isEditing, setIsEditing] = useState(false);
   const [username, setUsername] = useState('');
   const [bio, setBio] = useState('');
@@ -37,31 +22,27 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
+    // Safety: If after 3 seconds we still have no user, stop spinning and go to login
+    const timeout = setTimeout(() => {
+      if (!user) setLoading(false);
+    }, 3000);
+
     if (user) {
       fetchProfileData();
-    } else if (!loading && !user) {
-      navigate('/login');
     }
-  }, [user, loading, navigate]);
+    
+    return () => clearTimeout(timeout);
+  }, [user]);
 
   const fetchProfileData = async () => {
     try {
-      setLoading(true);
-      // Removed the unused 'error' variable here to satisfy the compiler
-      const { data: trader } = await supabase
-        .from('traders')
-        .select('*')
-        .eq('id', user?.id)
-        .single();
-        
+      const { data: trader } = await supabase.from('traders').select('*').eq('id', user?.id).single();
       if (trader) {
         setProfile(trader);
         setUsername(trader.username || '');
         setBio(trader.bio || '');
         setAvatarUrl(trader.avatar_url || '');
       }
-    } catch (err) {
-      console.error("Error loading profile:", err);
     } finally {
       setLoading(false);
     }
@@ -71,60 +52,16 @@ export default function ProfilePage() {
     try {
       setUploading(true);
       if (!event.target.files || event.target.files.length === 0) return;
-
       const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
-      const filePath = `${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-      const publicUrl = data.publicUrl;
-
-      const { error: updateError } = await supabase
-        .from('traders')
-        .update({ 
-          avatar_url: publicUrl,
-          avatar_status: 'pending' 
-        })
-        .eq('id', user?.id);
-
-      if (updateError) throw updateError;
-
-      setAvatarUrl(publicUrl);
-      setProfile((prev: any) => ({ ...prev, avatar_status: 'pending' }));
-    } catch (error: any) {
-      alert(error.message);
+      const fileName = `${user?.id}-${Math.random()}.${file.name.split('.').pop()}`;
+      
+      await supabase.storage.from('avatars').upload(fileName, file);
+      const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      
+      await supabase.from('traders').update({ avatar_url: data.publicUrl, avatar_status: 'pending' }).eq('id', user?.id);
+      setAvatarUrl(data.publicUrl);
     } finally {
       setUploading(false);
-    }
-  };
-
-  const handleSave = async () => {
-    setUploading(true);
-    const { error } = await supabase
-      .from('traders')
-      .update({ username, bio })
-      .eq('id', user?.id);
-
-    if (error) {
-      alert(error.message);
-    } else {
-      setProfile({ ...profile, username, bio, avatar_url: avatarUrl });
-      setIsEditing(false);
-    }
-    setUploading(false);
-  };
-
-  const handleLogout = async () => {
-    if (signOut) {
-      await signOut();
-      navigate('/login');
     }
   };
 
@@ -134,144 +71,46 @@ export default function ProfilePage() {
     </div>
   );
 
+  if (!user) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
+        <h2 className="font-black text-xl mb-4">Not Logged In</h2>
+        <button onClick={() => navigate('/login')} className="bg-[#7ED7C1] text-white px-8 py-3 rounded-2xl font-black uppercase text-xs">Go to Login</button>
+      </div>
+    );
+  }
+
   return (
-    <div className={`min-h-screen pb-24 transition-colors ${isDark ? 'bg-[#2E2A28] text-white' : 'bg-[#FDF8F7]'}`}>
+    <div className={`min-h-screen pb-32 transition-colors ${isDark ? 'bg-[#2E2A28] text-white' : 'bg-[#FDF8F7]'}`}>
       <div className="p-6 flex justify-between items-center">
         <h1 className={`text-xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>My Profile</h1>
         <div className="flex gap-4">
-          <button onClick={() => setIsDark(!isDark)} className="text-gray-400 active:scale-90 transition-transform">
-            <Moon size={22} className={isDark ? 'fill-yellow-400 text-yellow-400' : ''} />
-          </button>
-          <button onClick={() => navigate('/notifications')} className="text-gray-400 relative">
-            <Bell size={22} />
-            <span className="absolute top-0 right-0 w-2 h-2 bg-[#FFB5C5] rounded-full border-2 border-white" />
-          </button>
+          <button onClick={() => setIsDark(!isDark)} className="text-gray-400"><Moon size={22} /></button>
+          <button onClick={() => navigate('/notifications')} className="text-gray-400"><Bell size={22} /></button>
         </div>
       </div>
 
       <main className="px-5 space-y-6">
         <div className={`${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'} rounded-[40px] p-6 shadow-sm border relative`}>
-          
-          <button 
-            onClick={() => setIsEditing(!isEditing)} 
-            className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full text-gray-400 active:scale-90 transition-transform"
-          >
+          <button onClick={() => setIsEditing(!isEditing)} className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full text-gray-400">
             {isEditing ? <X size={18} /> : <Edit3 size={18} />}
           </button>
-          
           <div className="flex items-center gap-4 mb-4">
-            <div 
-              onClick={() => isEditing && fileInputRef.current?.click()}
-              className={`w-20 h-20 bg-[#F8F9FB] rounded-[30px] flex items-center justify-center border-2 border-white shadow-inner relative overflow-hidden ${isEditing ? 'cursor-pointer' : ''}`}
-            >
-              {avatarUrl ? (
-                <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
-              ) : (
-                <span className="text-3xl font-black text-gray-300">{username?.charAt(0).toUpperCase() || 'K'}</span>
-              )}
-              
-              {isEditing && (
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                  <Camera size={20} className="text-white" />
-                </div>
-              )}
-              {uploading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><Sparkles className="animate-spin text-[#7ED7C1]" size={20} /></div>}
+            <div onClick={() => isEditing && fileInputRef.current?.click()} className="w-20 h-20 bg-[#F8F9FB] rounded-[30px] flex items-center justify-center border-2 border-white relative overflow-hidden">
+              {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" alt="" /> : <span className="text-3xl font-black text-gray-300">{username?.charAt(0).toUpperCase()}</span>}
+              {isEditing && <div className="absolute inset-0 bg-black/20 flex items-center justify-center"><Camera size={20} className="text-white" /></div>}
             </div>
-
             <input type="file" ref={fileInputRef} onChange={uploadAvatar} className="hidden" accept="image/*" />
-            
             <div className="flex-1">
-              {isEditing ? (
-                <input 
-                  className="w-full bg-[#F8F9FB] border-none rounded-xl px-3 py-2 text-sm font-bold text-[#2E2A28]"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                />
-              ) : (
-                <>
-                  <div className="flex items-center gap-2">
-                    <h2 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>{profile?.username || 'kawaii'}</h2>
-                    {profile?.avatar_status === 'pending' && <Clock size={14} className="text-yellow-500" />}
-                  </div>
-                  <p className="text-xs font-bold text-gray-300 italic">@{profile?.username || 'kawaii'}</p>
-                </>
-              )}
+              {isEditing ? <input className="w-full bg-[#F8F9FB] rounded-xl px-3 py-2 text-sm font-bold text-[#2E2A28]" value={username} onChange={(e) => setUsername(e.target.value)} /> : 
+              <><div className="flex items-center gap-2"><h2 className="text-2xl font-black">{profile?.username || 'kawaii'}</h2>{profile?.avatar_status === 'pending' && <Clock size={14} className="text-yellow-500" />}</div><p className="text-xs font-bold text-gray-300 italic">@{profile?.username}</p></>}
             </div>
           </div>
-
-          <div className="mb-4">
-            {isEditing ? (
-              <textarea 
-                className="w-full bg-[#F8F9FB] border-none rounded-2xl px-4 py-3 text-xs font-bold text-gray-500 min-h-[80px]"
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Add a bio..."
-              />
-            ) : (
-              <p className="text-xs font-bold text-gray-400 leading-relaxed">{profile?.bio || "No bio yet."}</p>
-            )}
-          </div>
-
-          {isEditing ? (
-            <div className="space-y-4">
-              <div className="bg-[#FEF9C3] p-4 rounded-2xl flex gap-3 items-start border border-[#FEF08A]">
-                <Info size={18} className="text-yellow-600 shrink-0 mt-0.5" />
-                <p className="text-[10px] font-bold text-yellow-800 leading-tight">
-                  Please use your own official HKDV avatar. All profile pictures are manually approved before they are visible to others.
-                </p>
-              </div>
-
-              <button onClick={handleSave} className="w-full bg-[#7ED7C1] text-white py-3 rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2">
-                <Check size={16} /> Save Changes
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="flex gap-3 mb-4">
-                <div className="flex items-center gap-1.5 bg-[#F8F9FB] px-3 py-1.5 rounded-full text-[10px] font-bold text-gray-400">
-                  <ShieldAlert size={14} /> Not Verified
-                </div>
-                <div className="flex items-center gap-1.5 bg-[#F8F9FB] px-3 py-1.5 rounded-full text-[10px] font-bold text-gray-400">
-                  <Heart size={14} /> 0 likes
-                </div>
-              </div>
-              <button onClick={handleLogout} className="w-full flex items-center justify-between pt-4 border-t border-[#F8F9FB]">
-                <div className="flex items-center gap-3 text-red-300">
-                  <LogOut size={18} />
-                  <span className="text-sm font-bold">Sign Out</span>
-                </div>
-              </button>
-            </>
-          )}
+          {isEditing ? <div className="space-y-4"><textarea className="w-full bg-[#F8F9FB] rounded-2xl p-4 text-xs font-bold min-h-[80px]" value={bio} onChange={e => setBio(e.target.value)} /><div className="bg-[#FEF9C3] p-4 rounded-2xl flex gap-3"><Info size={18} className="text-yellow-600 shrink-0 mt-0.5" /><p className="text-[10px] font-bold text-yellow-800">Only HKDV avatars are allowed. Manual approval required.</p></div><button onClick={async () => { await supabase.from('traders').update({ username, bio }).eq('id', user?.id); setIsEditing(false); fetchProfileData(); }} className="w-full bg-[#7ED7C1] text-white py-3 rounded-2xl font-black text-xs uppercase"><Check size={16} className="inline mr-2" /> Save</button></div> : 
+          <><p className="text-xs font-bold text-gray-400 mb-4">{profile?.bio || "No bio yet."}</p><button onClick={async () => { await signOut(); navigate('/login'); }} className="w-full flex items-center justify-between pt-4 border-t border-[#F8F9FB] text-red-300"><div className="flex items-center gap-3"><LogOut size={18} /><span className="text-sm font-bold">Sign Out</span></div></button></>}
         </div>
-
-        {!isEditing && (
-          <>
-            <div className="grid grid-cols-2 gap-3">
-              <div className={`p-5 rounded-[32px] border shadow-sm ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'}`}>
-                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Total Trades</p>
-                <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>0</p>
-              </div>
-              <div className={`p-5 rounded-[32px] border shadow-sm ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'}`}>
-                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Dream Mints</p>
-                <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>10</p>
-              </div>
-            </div>
-
-            <section>
-              <div className="flex justify-between items-center mb-4 px-1">
-                <h3 className={`font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>Inventory Preview</h3>
-                <button onClick={() => navigate('/wardrobe')} className="text-[10px] font-black text-[#4E927E] uppercase tracking-widest">Open Wardrobe</button>
-              </div>
-              <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-                <div className={`min-w-[140px] aspect-square rounded-[32px] border ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'} p-2 flex flex-col items-center justify-center opacity-30`}>
-                  <Package size={32} className="text-gray-300 mb-2" />
-                  <p className="text-[8px] font-black uppercase">No Items</p>
-                </div>
-              </div>
-            </section>
-          </>
-        )}
+        {!isEditing && <div className="grid grid-cols-2 gap-3"><div className="bg-white p-5 rounded-[32px] border border-[#F0E6E4] shadow-sm text-center"><p className="text-[10px] font-bold text-gray-400 uppercase">Trades</p><p className="text-2xl font-black">0</p></div><div className="bg-white p-5 rounded-[32px] border border-[#F0E6E4] shadow-sm text-center"><p className="text-[10px] font-bold text-gray-400 uppercase">Mints</p><p className="text-2xl font-black">10</p></div></div>}
+        {!isEditing && <section><div className="flex justify-between items-center mb-4"><h3 className="font-black">Inventory Preview</h3><button onClick={() => navigate('/wardrobe')} className="text-[10px] font-black text-[#4E927E] uppercase">Open</button></div><div className="bg-white border-[#F0E6E4] rounded-[32px] border p-6 flex flex-col items-center opacity-30"><Package size={32} className="text-gray-300 mb-2" /><p className="text-[8px] font-black">No Items</p></div></section>}
       </main>
     </div>
   );
