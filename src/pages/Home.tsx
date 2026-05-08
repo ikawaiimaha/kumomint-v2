@@ -1,120 +1,103 @@
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
-import { initiateTradeOffer } from '../lib/trade-utils';
-import { 
-  Heart, 
-  ArrowLeftRight, 
-  Sparkles, 
-  Cloud, 
-  Bell, 
-  ChevronRight,
-  Package
-} from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Bell, Package, Heart, ChevronRight } from 'lucide-react';
 
-interface PerfectMatch {
-  trader_id: string;
-  trader_name: string;
-  trader_avatar: string;
-  give_item_id: string;
-  give_item_name: string;
-  give_item_image: string;
-  get_item_id: string;
-  get_item_name: string;
-  get_item_image: string;
-  fairness_ratio: number;
-}
+const TIER_NAMES = ["Daydream", "Reverie", "Lucid", "Ethereal", "Celestial"];
 
-interface Collection {
-  id: string;
-  name: string;
-  image_url: string;
-}
+// The colors perfectly match your app's pastel theme!
+const TIER_COLORS = [
+  "bg-[#7ED7C1]", // Daydream - Teal
+  "bg-[#A389F4]", // Reverie - Purple
+  "bg-[#FFB5C5]", // Lucid - Pink
+  "bg-[#93C5FD]", // Ethereal - Blue
+  "bg-[#FCD34D]"  // Celestial - Gold
+];
 
-const TIER_NAMES = ["Sticker", "Charm", "Treasure", "Dream", "Legendary"];
-
-const Home: React.FC = () => {
-  const navigate = useNavigate();
+export default function Home() {
   const { user } = useAuth();
-  const [perfectMatches, setPerfectMatches] = useState<PerfectMatch[]>([]);
-  const [recentCollections, setRecentCollections] = useState<Collection[]>([]);
-  const [userStats, setUserStats] = useState({ xp: 0, tier: 1 });
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  
+  // This is temporary mock XP just to make the bar look pretty for now!
+  const [xp, setXp] = useState(25); 
 
   useEffect(() => {
-    fetchHomeData();
-  }, [user]);
-
-  const fetchHomeData = async () => {
-    setLoading(true);
-    if (user) {
-      const { data: userData } = await supabase.from('traders').select('xp, tier').eq('id', user.id).single();
-      if (userData) setUserStats(userData);
-      const { data: matches } = await supabase.rpc('get_perfect_matches', { p_user_id: user.id });
-      if (matches) setPerfectMatches(matches);
+    // If someone tries to open the app but isn't logged in, send them to the login screen
+    if (!user) {
+      navigate('/login');
     }
-    const { data: colls } = await supabase.from('collections').select('id, name, image_url').eq('is_active', true).limit(6);
-    if (colls) setRecentCollections(colls);
-    setLoading(false);
-  };
+  }, [user, navigate]);
 
-  const handleSendOffer = async (match: PerfectMatch) => {
-    if (!user) return navigate('/login');
-    try {
-      await initiateTradeOffer(user.id, match.trader_id, match.give_item_id, match.get_item_id);
-      navigate('/offers');
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
+  // If user is null, don't render anything while redirecting
+  if (!user) return null; 
 
-  if (loading) return <div className="min-h-screen bg-[#FDF8F7] flex items-center justify-center"><Sparkles className="animate-spin text-[#7ED7C1]" /></div>;
+  // Math to figure out which tier they are in based on their XP
+  // Every 100 XP levels them up to the next tier name and color
+  const currentTierIndex = Math.min(Math.floor(xp / 100), 4);
+  const progressToNext = xp % 100;
+  
+  const currentTierName = TIER_NAMES[currentTierIndex];
+  const currentTierColor = TIER_COLORS[currentTierIndex];
 
   return (
-    <div className="min-h-screen bg-[#FDF8F7] pb-24">
-      <header className="p-6 flex justify-between items-center">
-        <h1 className="text-2xl font-black text-[#2E2A28]">KUMOMINT</h1>
-        <button className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm"><Bell size={18} /></button>
-      </header>
+    <div className="min-h-screen bg-[#FDF8F7] pb-32 px-6 pt-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8 mt-2">
+        <h1 className="text-2xl font-black text-[#2E2A28] tracking-tight">KUMOMINT</h1>
+        <button onClick={() => navigate('/notifications')} className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-[#F0E6E4] relative text-gray-400 active:scale-95 transition-transform">
+          <Bell size={20} />
+          <span className="absolute top-2 right-2 w-2 h-2 bg-[#FFB5C5] rounded-full border-2 border-white"></span>
+        </button>
+      </div>
 
-      <main className="px-6 space-y-8">
-        {user && (
-          <section onClick={() => navigate('/profile')} className="bg-gradient-to-br from-[#7ED7C1] to-[#5BBAA3] p-5 rounded-[32px] text-white shadow-md">
-            <h2 className="text-xl font-black">{TIER_NAMES[userStats.tier - 1]}</h2>
-            <div className="bg-black/10 h-2 rounded-full mt-2"><div className="h-full bg-white" style={{ width: `${(userStats.xp / 18000) * 100}%` }} /></div>
-          </section>
-        )}
-
-        <section>
-          <h3 className="font-bold text-lg mb-3">Perfect Matches</h3>
-          <div className="flex gap-4 overflow-x-auto no-scrollbar">
-            {perfectMatches.map((m, i) => (
-              <div key={i} className="min-w-[280px] bg-white rounded-[32px] p-4 border border-[#F0E6E4]">
-                <div className="flex justify-between text-[10px] font-bold text-gray-400 mb-4"><span>{m.trader_name}</span><span>{Math.round(m.fairness_ratio * 100)}% Fair</span></div>
-                <div className="flex items-center justify-between"><img src={m.get_item_image} className="w-12 h-12" alt="" /><ArrowLeftRight size={16} className="text-[#FFB5C5]" /><img src={m.give_item_image} className="w-12 h-12" alt="" /></div>
-                <button onClick={() => handleSendOffer(m)} className="w-full mt-4 py-3 bg-[#7ED7C1] text-white rounded-2xl text-[10px] font-black uppercase">Send Offer</button>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <div className="grid grid-cols-2 gap-4">
-          <button onClick={() => navigate('/wardrobe')} className="bg-[#EEF2FF] p-5 rounded-[32px] text-left border border-[#DDE4FF]"><Package size={20} className="text-[#7C93FF] mb-2" /><p className="font-bold text-sm">Wardrobe</p></button>
-          <button onClick={() => navigate('/wishlist')} className="bg-[#FFF5F7] p-5 rounded-[32px] text-left border border-[#FFDDE4]"><Heart size={20} className="text-[#FFB5C5] mb-2" /><p className="font-bold text-sm">Wishlist</p></button>
+      {/* Dynamic Tier Card */}
+      <div className={`${currentTierColor} p-6 rounded-[32px] shadow-sm mb-8 text-white relative overflow-hidden transition-colors duration-500`}>
+        {/* Soft overlay gradient to make it pop */}
+        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent" />
+        <h2 className="text-xl font-black mb-3 relative z-10">{currentTierName}</h2>
+        <div className="h-2 w-full bg-black/10 rounded-full relative z-10 overflow-hidden">
+          <div 
+            className="h-full bg-white/80 rounded-full transition-all duration-1000" 
+            style={{ width: `${progressToNext}%` }}
+          />
         </div>
+      </div>
 
-        <section>
-          <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-lg">New Collections</h3><ChevronRight size={20} className="text-gray-400" /></div>
-          <div className="flex gap-4 overflow-x-auto no-scrollbar">
-            {recentCollections.map(c => (
-              <div key={c.id} onClick={() => navigate(`/catalog?collection=${c.id}`)} className="min-w-[140px]"><div className="aspect-[4/5] bg-white rounded-[24px] mb-2 border border-[#F0E6E4] p-3 flex items-center justify-center shadow-sm">{c.image_url ? <img src={c.image_url} className="w-full h-full object-contain" alt="" /> : <Cloud size={32} className="opacity-20" />}</div><p className="text-[11px] font-bold line-clamp-1">{c.name}</p></div>
-            ))}
-          </div>
-        </section>
-      </main>
+      {/* Perfect Matches */}
+      <div className="mb-8">
+        <h3 className="font-black text-[#2E2A28] mb-4 text-lg">Perfect Matches</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <button 
+            onClick={() => navigate('/wardrobe')}
+            className="bg-[#EEF2FF] p-6 rounded-[32px] border border-blue-100 flex flex-col items-start gap-4 active:scale-95 transition-transform shadow-sm"
+          >
+            <div className="p-2 bg-white rounded-2xl shadow-sm">
+              <Package size={20} className="text-blue-400" />
+            </div>
+            <span className="font-black text-xs text-[#2E2A28]">Wardrobe</span>
+          </button>
+          
+          <button 
+            onClick={() => navigate('/wishlist')}
+            className="bg-[#FFF0F3] p-6 rounded-[32px] border border-pink-100 flex flex-col items-start gap-4 active:scale-95 transition-transform shadow-sm"
+          >
+            <div className="p-2 bg-white rounded-2xl shadow-sm">
+              <Heart size={20} className="text-pink-400" />
+            </div>
+            <span className="font-black text-xs text-[#2E2A28]">Wishlist</span>
+          </button>
+        </div>
+      </div>
+
+      {/* New Collections */}
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-black text-[#2E2A28] text-lg">New Collections</h3>
+          <button className="text-gray-400 active:scale-90 transition-transform">
+            <ChevronRight size={20} />
+          </button>
+        </div>
+      </div>
     </div>
   );
-};
-
-export default Home;
+}
