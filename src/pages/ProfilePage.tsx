@@ -27,6 +27,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [stats, setStats] = useState<ProfileStats>({ trades: 0, completed: 0, streak: 1, mints: 10 });
   const [loading, setLoading] = useState(true);
+  const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     if (user) fetchProfileData();
@@ -34,11 +35,9 @@ export default function ProfilePage() {
 
   const fetchProfileData = async () => {
     setLoading(true);
-    // 1. Fetch Profile
     const { data: trader } = await supabase.from('traders').select('*').eq('id', user?.id).single();
     if (trader) setProfile(trader);
 
-    // 2. Fetch Real Stats (Example counts)
     const { count: totalTrades } = await supabase.from('trades').select('*', { count: 'exact', head: true }).eq('sender_id', user?.id);
     const { count: completedTrades } = await supabase.from('trades').select('*', { count: 'exact', head: true }).eq('sender_id', user?.id).eq('status', 'completed');
     
@@ -65,20 +64,27 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FDF8F7] pb-24">
+    <div className={`min-h-screen pb-24 transition-colors ${isDark ? 'bg-[#2E2A28] text-white' : 'bg-[#FDF8F7]'}`}>
       {/* --- TOP BAR --- */}
-      <div className="p-6 flex justify-between items-center text-gray-400">
-        <h1 className="text-xl font-black text-[#2E2A28]">My Profile</h1>
+      <div className="p-6 flex justify-between items-center">
+        <h1 className={`text-xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>My Profile</h1>
         <div className="flex gap-4">
-          <Moon size={22} />
-          <Bell size={22} />
+          <button onClick={() => setIsDark(!isDark)} className="text-gray-400 active:scale-90 transition-transform">
+            <Moon size={22} className={isDark ? 'fill-yellow-400 text-yellow-400' : ''} />
+          </button>
+          <button onClick={() => navigate('/notifications')} className="text-gray-400 active:scale-90 transition-transform relative">
+            <Bell size={22} />
+            <span className="absolute top-0 right-0 w-2 h-2 bg-[#FFB5C5] rounded-full border-2 border-white" />
+          </button>
         </div>
       </div>
 
       <main className="px-5 space-y-6">
-        {/* --- MAIN PROFILE CARD --- */}
-        <div className="bg-white rounded-[40px] p-6 shadow-sm border border-[#F0E6E4] relative">
-          <button className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full text-gray-400">
+        <div className={`${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'} rounded-[40px] p-6 shadow-sm border relative`}>
+          <button 
+            onClick={() => navigate('/creator')} 
+            className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full text-gray-400 active:scale-90 transition-transform"
+          >
             <Edit3 size={18} />
           </button>
           
@@ -88,7 +94,7 @@ export default function ProfilePage() {
               <div className="absolute bottom-1 right-1 w-4 h-4 bg-[#A389F4] rounded-full border-2 border-white" />
             </div>
             <div>
-              <h2 className="text-2xl font-black text-[#2E2A28]">{profile?.username || 'kawaii'}</h2>
+              <h2 className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>{profile?.username || 'kawaii'}</h2>
               <p className="text-xs font-bold text-gray-300 italic">@{profile?.username || 'kawaii'}</p>
             </div>
           </div>
@@ -102,14 +108,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <p className="text-xs text-gray-400 font-medium leading-relaxed border-b border-[#F8F9FB] pb-4">
-            {profile?.bio || "Add a short bio so other traders know your style."}
-          </p>
-
-          <button 
-            onClick={handleLogout}
-            className="w-full flex items-center justify-between pt-4 group"
-          >
+          <button onClick={handleLogout} className="w-full flex items-center justify-between pt-4 group border-t border-[#F8F9FB]">
             <div className="flex items-center gap-3 text-red-300">
               <LogOut size={18} />
               <span className="text-sm font-bold">Sign Out</span>
@@ -118,58 +117,43 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* --- STATS GRID --- */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white p-5 rounded-[32px] border border-[#F0E6E4] shadow-sm">
-            <p className="text-[10px] font-bold text-gray-300 uppercase mb-1">Total Trades</p>
-            <p className="text-2xl font-black text-[#2E2A28]">{stats.trades}</p>
-          </div>
-          <div className="bg-white p-5 rounded-[32px] border border-[#F0E6E4] shadow-sm">
-            <p className="text-[10px] font-bold text-gray-300 uppercase mb-1">Completed Trades</p>
-            <p className="text-2xl font-black text-[#2E2A28]">{stats.completed}</p>
-          </div>
-          <div className="bg-white p-5 rounded-[32px] border border-[#F0E6E4] shadow-sm">
-            <p className="text-[10px] font-bold text-gray-300 uppercase mb-1">Login Streak</p>
-            <p className="text-2xl font-black text-[#2E2A28]">{stats.streak}</p>
-          </div>
-          <div className="bg-white p-5 rounded-[32px] border border-[#F0E6E4] shadow-sm">
-            <p className="text-[10px] font-bold text-gray-300 uppercase mb-1">Dream Mints</p>
-            <p className="text-2xl font-black text-[#2E2A28]">{stats.mints}</p>
-          </div>
+          {[
+            { label: 'Total Trades', val: stats.trades },
+            { label: 'Completed Trades', val: stats.completed },
+            { label: 'Login Streak', val: stats.streak },
+            { label: 'Dream Mints', val: stats.mints },
+          ].map((s, i) => (
+            <div key={i} className={`${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'} p-5 rounded-[32px] border shadow-sm`}>
+              <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">{s.label}</p>
+              <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>{s.val}</p>
+            </div>
+          ))}
         </div>
 
-        {/* --- INVENTORY PREVIEW --- */}
         <section>
           <div className="flex justify-between items-center mb-4 px-1">
-            <h3 className="font-black text-[#2E2A28]">Inventory Preview</h3>
+            <h3 className={`font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>Inventory Preview</h3>
             <button onClick={() => navigate('/wardrobe')} className="text-[10px] font-black text-[#4E927E] uppercase tracking-widest">Open Wardrobe</button>
           </div>
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="min-w-[140px] aspect-square bg-white rounded-[32px] border border-[#F0E6E4] p-2 flex flex-col shadow-sm">
-                <div className="flex-1 bg-gradient-to-br from-[#F5EAFF] to-[#E5D4FF] rounded-2xl flex items-center justify-center relative overflow-hidden">
-                  <Package size={32} className="text-white opacity-40" />
-                  <div className="absolute top-2 left-2 bg-white/40 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md">SUPER</div>
-                </div>
-              </div>
-            ))}
+            <div className={`min-w-[140px] aspect-square rounded-[32px] border ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'} p-2 flex flex-col items-center justify-center opacity-30`}>
+              <Package size={32} className="text-gray-300 mb-2" />
+              <p className="text-[8px] font-black uppercase">No Items</p>
+            </div>
           </div>
         </section>
 
-        {/* --- WISHLIST PREVIEW --- */}
         <section>
           <div className="flex justify-between items-center mb-4 px-1">
-            <h3 className="font-black text-[#2E2A28]">Wishlist Preview</h3>
+            <h3 className={`font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>Wishlist Preview</h3>
             <button onClick={() => navigate('/wishlist')} className="text-[10px] font-black text-[#4E927E] uppercase tracking-widest">Manage Wishlist</button>
           </div>
           <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-            {[1, 2].map((i) => (
-              <div key={i} className="min-w-[140px] aspect-square bg-white rounded-[32px] border border-[#F0E6E4] p-2 flex flex-col shadow-sm">
-                <div className="flex-1 bg-gray-50 rounded-2xl flex items-center justify-center relative overflow-hidden">
-                   <Clock size={24} className="text-gray-200" />
-                </div>
-              </div>
-            ))}
+            <div className={`min-w-[140px] aspect-square rounded-[32px] border ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'} p-2 flex flex-col items-center justify-center opacity-30`}>
+              <Heart size={32} className="text-gray-300 mb-2" />
+              <p className="text-[8px] font-black uppercase">No Wishes</p>
+            </div>
           </div>
         </section>
       </main>
