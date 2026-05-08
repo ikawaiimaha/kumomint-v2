@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+// We changed '@/lib/supabase' to '../lib/supabase' to be safer
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   LogOut, 
@@ -15,11 +16,15 @@ import {
   Camera,
   Info,
   Clock,
-  Package // <--- Re-added this to prevent the crash!
+  Package 
 } from 'lucide-react';
 
 export default function ProfilePage() {
-  const { user, signOut } = useAuth();
+  const auth = useAuth();
+  // Safe check: If auth is missing, don't crash
+  const user = auth?.user;
+  const signOut = auth?.signOut;
+  
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -34,19 +39,34 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    if (user) fetchProfileData();
-  }, [user]);
+    if (user) {
+      fetchProfileData();
+    } else if (!loading && !user) {
+      // If we are done loading and there is no user, send them to login
+      navigate('/login');
+    }
+  }, [user, loading, navigate]);
 
   const fetchProfileData = async () => {
-    setLoading(true);
-    const { data: trader } = await supabase.from('traders').select('*').eq('id', user?.id).single();
-    if (trader) {
-      setProfile(trader);
-      setUsername(trader.username || '');
-      setBio(trader.bio || '');
-      setAvatarUrl(trader.avatar_url || '');
+    try {
+      setLoading(true);
+      const { data: trader, error } = await supabase
+        .from('traders')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+        
+      if (trader) {
+        setProfile(trader);
+        setUsername(trader.username || '');
+        setBio(trader.bio || '');
+        setAvatarUrl(trader.avatar_url || '');
+      }
+    } catch (err) {
+      console.error("Error loading profile:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +88,7 @@ export default function ProfilePage() {
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       const publicUrl = data.publicUrl;
 
-      const { error: updateError } = await supabase
+      await supabase
         .from('traders')
         .update({ 
           avatar_url: publicUrl,
@@ -76,10 +96,8 @@ export default function ProfilePage() {
         })
         .eq('id', user?.id);
 
-      if (updateError) throw updateError;
-
       setAvatarUrl(publicUrl);
-      setProfile({...profile, avatar_status: 'pending'});
+      setProfile((prev: any) => ({ ...prev, avatar_status: 'pending' }));
     } catch (error: any) {
       alert(error.message);
     } finally {
@@ -104,8 +122,10 @@ export default function ProfilePage() {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
+    if (signOut) {
+      await signOut();
+      navigate('/login');
+    }
   };
 
   if (loading) return (
@@ -119,9 +139,7 @@ export default function ProfilePage() {
       <div className="p-6 flex justify-between items-center">
         <h1 className={`text-xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>My Profile</h1>
         <div className="flex gap-4">
-          <button onClick={() => setIsDark(!isDark)} className="text-gray-400 active:scale-90 transition-transform">
-            <Moon size={22} className={isDark ? 'fill-yellow-400 text-yellow-400' : ''} />
-          </button>
+          <button onClick={() => setIsDark(!isDark)} className="text-gray-400"><Moon size={22} /></button>
           <button onClick={() => navigate('/notifications')} className="text-gray-400 relative">
             <Bell size={22} />
             <span className="absolute top-0 right-0 w-2 h-2 bg-[#FFB5C5] rounded-full border-2 border-white" />
@@ -134,7 +152,7 @@ export default function ProfilePage() {
           
           <button 
             onClick={() => setIsEditing(!isEditing)} 
-            className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full text-gray-400 active:scale-90"
+            className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full text-gray-400"
           >
             {isEditing ? <X size={18} /> : <Edit3 size={18} />}
           </button>
@@ -142,7 +160,7 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4 mb-4">
             <div 
               onClick={() => isEditing && fileInputRef.current?.click()}
-              className={`w-20 h-20 bg-[#F8F9FB] rounded-[30px] flex items-center justify-center border-2 border-white shadow-inner relative overflow-hidden ${isEditing ? 'cursor-pointer group' : ''}`}
+              className={`w-20 h-20 bg-[#F8F9FB] rounded-[30px] flex items-center justify-center border-2 border-white relative overflow-hidden ${isEditing ? 'cursor-pointer' : ''}`}
             >
               {avatarUrl ? (
                 <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
@@ -151,7 +169,7 @@ export default function ProfilePage() {
               )}
               
               {isEditing && (
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                   <Camera size={20} className="text-white" />
                 </div>
               )}
@@ -185,7 +203,6 @@ export default function ProfilePage() {
                 className="w-full bg-[#F8F9FB] border-none rounded-2xl px-4 py-3 text-xs font-bold text-gray-500 min-h-[80px]"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Add a bio..."
               />
             ) : (
               <p className="text-xs font-bold text-gray-400 leading-relaxed">{profile?.bio || "No bio yet."}</p>
@@ -195,12 +212,11 @@ export default function ProfilePage() {
           {isEditing ? (
             <div className="space-y-4">
               <div className="bg-[#FEF9C3] p-4 rounded-2xl flex gap-3 items-start border border-[#FEF08A]">
-                <Info size={18} className="text-yellow-600 shrink-0 mt-0.5" />
-                <p className="text-[10px] font-bold text-yellow-800 leading-tight">
-                  Please use your own official HKDV avatar. All profile pictures are manually approved before they are visible to others.
+                <Info size={18} className="text-yellow-600 shrink-0" />
+                <p className="text-[10px] font-bold text-yellow-800">
+                  Please use your own official HKDV avatar. All profile pictures are manually approved.
                 </p>
               </div>
-
               <button onClick={handleSave} className="w-full bg-[#7ED7C1] text-white py-3 rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2">
                 <Check size={16} /> Save Changes
               </button>
@@ -226,32 +242,29 @@ export default function ProfilePage() {
         </div>
 
         {!isEditing && (
-          <div className="grid grid-cols-2 gap-3">
-            <div className={`p-5 rounded-[32px] border shadow-sm ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'}`}>
-              <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Total Trades</p>
-              <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>0</p>
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div className={`p-5 rounded-[32px] border shadow-sm ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'}`}>
+                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Total Trades</p>
+                <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>0</p>
+              </div>
+              <div className={`p-5 rounded-[32px] border shadow-sm ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'}`}>
+                <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Dream Mints</p>
+                <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>10</p>
+              </div>
             </div>
-            <div className={`p-5 rounded-[32px] border shadow-sm ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'}`}>
-              <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Dream Mints</p>
-              <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>10</p>
-            </div>
-          </div>
-        )}
 
-        {/* Inventory Preview */}
-        {!isEditing && (
-          <section>
-            <div className="flex justify-between items-center mb-4 px-1">
-              <h3 className={`font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>Inventory Preview</h3>
-              <button onClick={() => navigate('/wardrobe')} className="text-[10px] font-black text-[#4E927E] uppercase tracking-widest">Open Wardrobe</button>
-            </div>
-            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+            <section>
+              <div className="flex justify-between items-center mb-4 px-1">
+                <h3 className={`font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>Inventory Preview</h3>
+                <button onClick={() => navigate('/wardrobe')} className="text-[10px] font-black text-[#4E927E] uppercase">Open Wardrobe</button>
+              </div>
               <div className={`min-w-[140px] aspect-square rounded-[32px] border ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'} p-2 flex flex-col items-center justify-center opacity-30`}>
                 <Package size={32} className="text-gray-300 mb-2" />
                 <p className="text-[8px] font-black uppercase">No Items</p>
               </div>
-            </div>
-          </section>
+            </section>
+          </>
         )}
       </main>
     </div>
