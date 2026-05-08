@@ -11,7 +11,6 @@ import {
   LogIn
 } from 'lucide-react';
 
-// --- TYPESCRIPT INTERFACES (Fixes the 'any' errors) ---
 interface Item {
   id: string;
   name: string;
@@ -31,7 +30,6 @@ export default function WishlistPage() {
   const [wishlist, setWishlist] = useState<WishlistEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // --- USECALLBACK (Fixes the 'exhaustive-deps' error) ---
   const fetchWishlist = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -42,7 +40,6 @@ export default function WishlistPage() {
       .eq('trader_id', user.id);
     
     if (data) {
-      // We 'cast' the data to our interface here
       setWishlist(data as unknown as WishlistEntry[]);
     }
     setLoading(false);
@@ -62,12 +59,16 @@ export default function WishlistPage() {
     </div>
   );
 
-  // --- NO USER FALLBACK ---
   if (!user) return (
     <div className="min-h-screen bg-[#FDF8F7] dark:bg-[#1A0B2E] flex flex-col items-center justify-center p-10 text-center">
       <Heart size={48} className="text-gray-200 dark:text-[#2D1B4E] mb-4" />
       <h2 className="text-xl font-black dark:text-[#FFF9E3] mb-6">Wishlist Locked</h2>
-      <button onClick={() => navigate('/login')} className="bg-[#2E2A28] dark:bg-[#A389F4] text-white px-8 py-4 rounded-2xl font-black uppercase text-xs">Sign In</button>
+      <button 
+        onClick={() => navigate('/login')} 
+        className="bg-[#2E2A28] dark:bg-[#A389F4] text-white px-8 py-4 rounded-2xl font-black uppercase text-xs flex items-center gap-2"
+      >
+        <LogIn size={16} /> Sign In
+      </button>
     </div>
   );
 
