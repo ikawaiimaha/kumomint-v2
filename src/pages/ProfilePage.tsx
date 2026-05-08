@@ -13,7 +13,6 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // 1. Declare fetch function BEFORE the useEffect
   const fetchProfile = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from('traders').select('username').eq('id', user.id).single();
@@ -50,7 +49,7 @@ export default function ProfilePage() {
         {/* Main Profile Card */}
         <div className="glass-card p-8 text-center relative overflow-hidden">
           {/* Subtle Glow Background */}
-          <div className="absolute -top-10 -left-10 w-32 h-32 bg-[var(--accent)] opacity-10 blur-3xl" />
+          <div className="absolute -top-10 -left-10 w-32 h-32 bg-[var(--accent)] opacity-10 blur-3xl pointer-events-none" />
           
           <div className="w-24 h-24 bg-[var(--bg-primary)] rounded-[32px] mx-auto mb-4 border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)]">
             <span className="text-3xl font-black text-[var(--accent)]">{username.charAt(0)}</span>
@@ -61,8 +60,13 @@ export default function ProfilePage() {
             <Clock size={12} /> Syncing with Stars
           </p>
 
-          <div className="flex gap-2">
-            <button className="flex-1 py-3 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase shadow-lg shadow-[#A389F4]/20">
+          {/* Added relative z-10 here to ensure it stays clickable above backgrounds */}
+          <div className="flex gap-2 relative z-10">
+            {/* Added onClick here */}
+            <button 
+              onClick={() => navigate('/edit-profile')}
+              className="flex-1 py-3 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase shadow-lg shadow-[#A389F4]/20"
+            >
               <Edit3 size={14} className="inline mr-2" /> Edit Persona
             </button>
             <button onClick={() => { signOut(); navigate('/login'); }} className="p-3 glass-card text-red-400">
