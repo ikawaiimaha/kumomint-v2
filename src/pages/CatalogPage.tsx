@@ -1,146 +1,144 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Search, 
-  Heart, 
-  Sparkles, 
-  Filter,
-  ChevronLeft
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { Search, Heart, Sparkles, ChevronLeft, Package } from 'lucide-react';
 
-interface Item {
-  id: string;
-  name: string;
-  image_url: string;
-  rarity: string;
-  collection_id: string;
-  release_date: string;
-}
-
+// --- PRO PATTERN: Define Interfaces to avoid 'any' ---
 interface Collection {
   id: string;
   name: string;
 }
 
+interface Item {
+  id: string;
+  name: string;
+  image_url: string;
+  collection_id: string;
+  rarity?: string;
+}
+
 export default function CatalogPage() {
   const { user } = useAuth();
+  
+  // State for raw data
   const [items, setItems] = useState<Item[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedRarity, setSelectedRarity] = useState<string | null>(null);
-  const [selectedCollection, setSelectedCollection] = useState<string>('all');
+  // State for UI filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCollection, setActiveCollection] = useState<string>("all");
 
-  useEffect(() => {
-    fetchInitialData();
+  // --- PRO PATTERN: Stable Fetching ---
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    const [itemsRes, collsRes] = await Promise.all([
+      supabase.from('items').select('*').order('name'),
+      supabase.from('collections').select('id, name')
+    ]);
+
+    if (itemsRes.data) setItems(itemsRes.data);
+    if (collsRes.data) setCollections(collsRes.data);
+    setLoading(false);
   }, []);
 
-  const fetchInitialData = async () => {
-    setLoading(true);
-    const { data: colls } = await supabase.from('collections').select('id, name').eq('is_active', true);
-    if (colls) setCollections(colls);
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-    const { data: itemList } = await supabase.from('items').select('*').order('release_date', { ascending: false });
-    if (itemList) setItems(itemList);
-    setLoading(false);
+  // --- BETTER ALTERNATIVE: Derived State Filtering ---
+  // This calculates the list instantly without needing a second 'useEffect'
+  const filteredItems = useMemo(() => {
+    return items.filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = activeCollection === "all" || item.collection_id === activeCollection;
+      return matchesSearch && matchesCategory;
+    });
+  }, [items, searchQuery, activeCollection]);
+
+  const handleWishlist = async (itemId: string) => {
+    if (!user) return alert("Sign in to save items!");
+    await supabase.from('wishlist').upsert({ trader_id: user.id, item_id: itemId });
+    alert("Added to stars! ✨");
   };
 
-  const addToWishlist = async (itemId: string) => {
-    if (!user) return alert("Please login first!");
-    const { error } = await supabase.from('wishlist').insert([{ 
-      trader_id: user.id, 
-      item_id: itemId, 
-      priority: 1 
-    }]);
-    if (error) alert("Already in your wishlist!");
-    else alert("Added to Wishlist!");
-  };
-
-  const filteredItems = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesRarity = selectedRarity ? item.rarity === selectedRarity : true;
-    const matchesCollection = selectedCollection === 'all' ? true : item.collection_id === selectedCollection;
-    return matchesSearch && matchesRarity && matchesCollection;
-  });
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)]">
+      <Sparkles className="animate-spin text-[var(--accent)]" />
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#FDF8F7] pb-32">
-      <header className="p-6 bg-white rounded-b-[40px] shadow-sm sticky top-0 z-30">
+    <div className="min-h-screen pb-32 transition-colors">
+      <header className="p-6 sticky top-0 bg-[var(--bg-app)] z-40">
         <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => window.history.back()} className="p-2 bg-[#F8F9FB] rounded-full text-gray-400">
+          <button onClick={() => window.history.back()} className="p-2 glass-panel text-gray-400">
             <ChevronLeft size={20} />
           </button>
-          <h1 className="text-xl font-black text-[#2E2A28]">Item Catalog</h1>
+          <h1 className="text-xl font-black uppercase tracking-widest">Explore Orbit</h1>
         </div>
 
-        <div className="relative mb-4">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
+        {/* Search Bar */}
+        <div className="relative mb-6">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 opacity-30" size={18} />
           <input 
-            type="text"
-            placeholder="Search items, characters..."
-            className="w-full pl-12 pr-4 py-4 bg-[#F8F9FB] rounded-2xl text-sm font-bold border-none focus:ring-2 focus:ring-[#7ED7C1]"
+            type="text" 
+            placeholder="Search the galaxy..." 
+            className="w-full pl-12 pr-4 py-4 glass-panel border-none text-sm font-bold placeholder:opacity-30 focus:ring-2 focus:ring-[var(--accent)] transition-all"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
-          <select 
-            className="bg-[#F8F9FB] border-none rounded-full px-4 py-2 text-[10px] font-black uppercase text-gray-500"
-            value={selectedCollection}
-            onChange={(e) => setSelectedCollection(e.target.value)}
+        {/* Collection Filter Horizontal Scroll */}
+        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+          <button 
+            onClick={() => setActiveCollection("all")}
+            className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+              activeCollection === "all" ? 'bg-[var(--accent)] text-white shadow-lg' : 'glass-panel opacity-50'
+            }`}
           >
-            <option value="all">All Collections</option>
-            {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-
-          {['SR', 'S', 'R', 'N'].map((r) => (
-            <button
-              key={r}
-              onClick={() => setSelectedRarity(selectedRarity === r ? null : r)}
-              className={cn(
-                "px-4 py-2 rounded-full text-[10px] font-black uppercase whitespace-nowrap transition-all",
-                selectedRarity === r ? "bg-[#2E2A28] text-white" : "bg-white border border-[#F0E6E4] text-gray-400"
-              )}
+            All
+          </button>
+          {collections.map(c => (
+            <button 
+              key={c.id}
+              onClick={() => setActiveCollection(c.id)}
+              className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${
+                activeCollection === c.id ? 'bg-[var(--accent)] text-white shadow-lg' : 'glass-panel opacity-50'
+              }`}
             >
-              {r === 'SR' ? 'Super' : r === 'S' ? 'Spark' : r === 'R' ? 'Star' : 'Moon'}
+              {c.name}
             </button>
           ))}
         </div>
       </header>
 
-      <main className="px-6 mt-6">
-        {loading ? (
-          <div className="flex justify-center py-20"><Sparkles className="animate-spin text-[#7ED7C1]" /></div>
-        ) : (
+      <main className="px-6">
+        {filteredItems.length > 0 ? (
           <div className="grid grid-cols-2 gap-4">
             {filteredItems.map((item) => (
-              <div key={item.id} className="bg-white p-3 rounded-[32px] border border-[#F0E6E4] shadow-sm relative group">
-                <div className="aspect-square bg-[#F8F9FB] rounded-2xl mb-3 flex items-center justify-center relative overflow-hidden">
-                  <img src={item.image_url} className="w-full h-full object-contain p-2 group-hover:scale-110 transition-transform" alt="" />
+              <div key={item.id} className="glass-panel p-3 group animate-in fade-in duration-500">
+                <div className="aspect-square bg-[var(--bg-app)] rounded-2xl mb-3 flex items-center justify-center relative overflow-hidden">
+                  <img src={item.image_url} className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-500" alt="" />
                   <button 
-                    onClick={() => addToWishlist(item.id)}
-                    className="absolute bottom-2 right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md text-[#FFB5C5] active:scale-75 transition-all"
+                    onClick={() => handleWishlist(item.id)}
+                    className="absolute top-2 right-2 p-2 bg-white/10 backdrop-blur-md rounded-full text-pink-400 border border-white/10 active:scale-90"
                   >
                     <Heart size={14} />
                   </button>
                 </div>
-                <div className="px-1">
-                  <p className="text-[8px] font-black text-gray-300 uppercase">{item.rarity}</p>
-                  <h3 className="text-[11px] font-bold text-[#2E2A28] truncate">{item.name}</h3>
-                </div>
+                <h3 className="text-[11px] font-black opacity-80 truncate px-1">{item.name}</h3>
+                <p className="text-[8px] font-bold opacity-30 uppercase tracking-widest px-1">
+                  {item.rarity || 'Common'}
+                </p>
               </div>
             ))}
           </div>
-        )}
-
-        {!loading && filteredItems.length === 0 && (
-          <div className="text-center py-20 opacity-20">
-            <Filter size={48} className="mx-auto mb-4" />
-            <p className="font-bold uppercase tracking-widest text-xs">No items match your search</p>
+        ) : (
+          <div className="py-20 text-center opacity-20">
+            <Package size={48} className="mx-auto mb-4" />
+            <p className="text-[10px] font-black uppercase tracking-widest">No signals found in this sector</p>
           </div>
         )}
       </main>
