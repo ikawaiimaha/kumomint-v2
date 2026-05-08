@@ -1,105 +1,114 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Heart, 
-  Trash2, 
   Sparkles, 
-  Clock,
-  ChevronLeft,
-  Search
+  Search, 
+  ChevronLeft, 
+  Heart, 
+  Package,
+  LogIn
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
-interface WishlistItem {
+// --- TYPESCRIPT INTERFACES (Fixes the 'any' errors) ---
+interface Item {
   id: string;
-  priority: number;
-  item: {
-    id: string;
-    name: string;
-    image_url: string;
-    rarity: string;
-    release_date: string;
-  };
+  name: string;
+  image_url: string;
+}
+
+interface WishlistEntry {
+  id: string;
+  item_id: string;
+  items: Item;
 }
 
 export default function WishlistPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  
+  const [wishlist, setWishlist] = useState<WishlistEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) fetchWishlist();
-  }, [user]);
-
-  const fetchWishlist = async () => {
+  // --- USECALLBACK (Fixes the 'exhaustive-deps' error) ---
+  const fetchWishlist = useCallback(async () => {
+    if (!user) return;
     setLoading(true);
+    
     const { data } = await supabase
       .from('wishlist')
-      .select(`id, priority, item:items (id, name, image_url, rarity, release_date)`)
-      .eq('trader_id', user?.id)
-      .order('priority', { ascending: false });
-
-    if (data) setWishlist(data as any);
+      .select('*, items(*)')
+      .eq('trader_id', user.id);
+    
+    if (data) {
+      // We 'cast' the data to our interface here
+      setWishlist(data as unknown as WishlistEntry[]);
+    }
     setLoading(false);
-  };
+  }, [user]);
 
-  const removeFromWishlist = async (id: string) => {
-    await supabase.from('wishlist').delete().eq('id', id);
-    setWishlist(prev => prev.filter(item => item.id !== id));
-  };
+  useEffect(() => {
+    if (user) {
+      fetchWishlist();
+    } else if (!authLoading) {
+      setLoading(false);
+    }
+  }, [user, authLoading, fetchWishlist]);
+
+  if (authLoading || loading) return (
+    <div className="min-h-screen bg-[#FDF8F7] dark:bg-[#1A0B2E] flex items-center justify-center">
+      <Sparkles className="animate-spin text-[#7ED7C1] dark:text-[#A389F4]" />
+    </div>
+  );
+
+  // --- NO USER FALLBACK ---
+  if (!user) return (
+    <div className="min-h-screen bg-[#FDF8F7] dark:bg-[#1A0B2E] flex flex-col items-center justify-center p-10 text-center">
+      <Heart size={48} className="text-gray-200 dark:text-[#2D1B4E] mb-4" />
+      <h2 className="text-xl font-black dark:text-[#FFF9E3] mb-6">Wishlist Locked</h2>
+      <button onClick={() => navigate('/login')} className="bg-[#2E2A28] dark:bg-[#A389F4] text-white px-8 py-4 rounded-2xl font-black uppercase text-xs">Sign In</button>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#FDF8F7] pb-24">
-      <div className="p-6 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-2 bg-white rounded-full shadow-sm">
-          <ChevronLeft size={20} />
-        </button>
-        <h1 className="text-2xl font-black text-[#2E2A28]">My Wishlist</h1>
-      </div>
+    <div className="min-h-screen bg-[#FDF8F7] dark:bg-[#1A0B2E] pb-32 transition-colors">
+      <header className="p-6 bg-white dark:bg-[#2D1B4E] rounded-b-[40px] shadow-sm sticky top-0 z-30 transition-colors">
+        <div className="flex items-center gap-3 mb-6">
+          <button onClick={() => navigate(-1)} className="p-2 bg-[#F8F9FB] dark:bg-[#1A0B2E] rounded-full text-gray-400">
+            <ChevronLeft size={20} />
+          </button>
+          <h1 className="text-xl font-black text-[#2E2A28] dark:text-[#FFF9E3]">My Wishlist</h1>
+        </div>
 
-      <main className="px-6 space-y-4">
-        {loading ? (
-          <div className="flex justify-center py-20"><Sparkles className="animate-spin text-[#FFB5C5]" /></div>
-        ) : wishlist.length > 0 ? (
-          wishlist.map((wish) => (
-            <div key={wish.id} className="bg-white rounded-[32px] p-4 shadow-sm border border-[#F0E6E4] flex items-center gap-4">
-              <div className="w-20 h-20 bg-[#F8F9FB] rounded-2xl flex-shrink-0 flex items-center justify-center relative">
-                <img src={wish.item.image_url} className="w-16 h-16 object-contain" alt="" />
-                {Math.floor((new Date().getTime() - new Date(wish.item.release_date).getTime()) / 86400000) < 14 && (
-                  <div className="absolute inset-0 bg-black/20 rounded-2xl flex items-center justify-center">
-                    <Clock size={16} className="text-white" />
-                  </div>
-                )}
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-bold text-[#2E2A28]">{wish.item.name}</h3>
-                <div className="flex gap-1 mt-2">
-                  {[1, 2, 3, 4].map((h) => (
-                    <Heart key={h} size={14} className={cn(h <= wish.priority ? "fill-[#FFB5C5] text-[#FFB5C5]" : "text-gray-200")} />
-                  ))}
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
+          <input 
+            type="text"
+            placeholder="Search wishlist..."
+            className="w-full pl-12 pr-4 py-4 bg-[#F8F9FB] dark:bg-[#1A0B2E] rounded-2xl text-sm font-bold border-none dark:text-[#E0D7FF]"
+          />
+        </div>
+      </header>
+
+      <main className="px-6 mt-6">
+        {wishlist.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4">
+            {wishlist.map((entry) => (
+              <div key={entry.id} className="bg-white dark:bg-[#2D1B4E] p-3 rounded-[32px] border border-[#F0E6E4] dark:border-[#483475] shadow-sm">
+                <div className="aspect-square bg-[#F8F9FB] dark:bg-[#1A0B2E] rounded-2xl mb-3 flex items-center justify-center">
+                  <img src={entry.items?.image_url} className="w-full h-full object-contain p-2" alt="" />
+                </div>
+                <div className="px-1 text-center">
+                  <h3 className="text-[11px] font-bold text-[#2E2A28] dark:text-[#E0D7FF] truncate">{entry.items?.name}</h3>
                 </div>
               </div>
-              <button onClick={() => removeFromWishlist(wish.id)} className="text-gray-300 hover:text-red-400">
-                <Trash2 size={18} />
-              </button>
-            </div>
-          ))
+            ))}
+          </div>
         ) : (
-          <div className="text-center py-20 bg-white/40 border-2 border-dashed border-[#F0E6E4] rounded-[40px]">
-            <div className="w-16 h-16 bg-[#FFF5F7] rounded-full flex items-center justify-center mx-auto mb-4">
-              <Heart size={32} className="text-[#FFB5C5]" />
-            </div>
-            <p className="font-bold text-[#2E2A28]">Your wishlist is empty</p>
-            <p className="text-[11px] text-gray-400 mt-1 mb-6">Heart items in the catalog to add them!</p>
-            <button 
-              onClick={() => navigate('/catalog')}
-              className="bg-[#2E2A28] text-white px-8 py-3 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-2 mx-auto"
-            >
-              <Search size={14} /> Explore Catalog
-            </button>
+          <div className="text-center py-20 opacity-20 dark:text-[#A389F4]">
+            <Package size={48} className="mx-auto mb-4" />
+            <p className="font-bold uppercase tracking-widest text-xs">Wishlist is empty</p>
           </div>
         )}
       </main>
