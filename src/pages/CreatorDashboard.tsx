@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import { Edit3, ChevronLeft, Package, Star } from 'lucide-react';
+import { Edit3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function CreatorDashboard() {
@@ -10,7 +10,7 @@ export default function CreatorDashboard() {
   const [collections, setCollections] = useState<any[]>([]);
   const [existingItems, setExistingItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selfMint, setSelfMint] = useState(true); // Automatically add to your wardrobe
+  const [selfMint, setSelfMint] = useState(true); 
   
   const [itemForm, setItemForm] = useState({
     name: '', rarity: 'R', collection_id: '', image_url: '', character: ''
@@ -31,7 +31,6 @@ export default function CreatorDashboard() {
     if (!itemForm.collection_id || !itemForm.name) return alert("Fill required fields!");
     setLoading(true);
 
-    // 1. Add to Global Catalog
     const { data: newItem, error } = await supabase.from('items').insert([{
       ...itemForm,
       release_date: new Date().toISOString()
@@ -40,7 +39,6 @@ export default function CreatorDashboard() {
     if (error) {
       alert(error.message);
     } else if (selfMint && user && newItem) {
-      // 2. Automatically add to Creator's Wardrobe (Inventory)
       await supabase.from('inventory').insert([{
         trader_id: user.id,
         item_id: newItem.id,
@@ -89,7 +87,6 @@ export default function CreatorDashboard() {
           </div>
         )}
         
-        {/* Manage Tab remains the same for editing existing entries */}
         {tab === 'manage' && (
           <div className="space-y-3">
             {existingItems.map(item => (
