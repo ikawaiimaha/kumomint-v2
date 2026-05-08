@@ -6,7 +6,6 @@ export const initiateTradeOffer = async (
   senderInvId: string,
   receiverInvId: string
 ) => {
-  // 1. Double check eligibility and padlocks
   const { data: invItem, error: invError } = await supabase
     .from('inventory')
     .select('is_padlocked, created_at')
@@ -16,13 +15,11 @@ export const initiateTradeOffer = async (
   if (invError || !invItem) throw new Error("Item not found in inventory.");
   if (invItem.is_padlocked) throw new Error("This item is padlocked.");
 
-  // 2. 14-day rule
   const daysSinceAcquired = Math.floor(
     (new Date().getTime() - new Date(invItem.created_at).getTime()) / (1000 * 3600 * 24)
   );
   if (daysSinceAcquired < 14) throw new Error("Item is still in the 14-day lock period.");
 
-  // 3. Insert trade
   const { data, error } = await supabase
     .from('trades')
     .insert([{
