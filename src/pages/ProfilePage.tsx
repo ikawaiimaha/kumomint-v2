@@ -7,13 +7,11 @@ import {
   Bell, 
   Moon, 
   Edit3, 
-  ChevronRight,
   ShieldAlert,
   Heart,
-  Package,
+  Settings,
   Sparkles
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
   const { user, signOut } = useAuth();
@@ -37,8 +35,12 @@ export default function ProfilePage() {
   };
 
   const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
   };
 
   return (
@@ -46,24 +48,14 @@ export default function ProfilePage() {
       {/* --- TOP BAR --- */}
       <div className="p-6 flex justify-between items-center">
         <h1 className="text-xl font-black text-[#2E2A28]">My Profile</h1>
-        <div className="flex gap-4">
-          <button className="text-gray-400"><Moon size={22} /></button>
-          <button className="text-gray-400 relative">
-            <Bell size={22} />
-            <span className="absolute top-0 right-0 w-2 h-2 bg-[#FFB5C5] rounded-full border-2 border-white" />
-          </button>
-          {/* --- ADDED LOGOUT BUTTON --- */}
-          <button 
-            onClick={handleLogout}
-            className="text-red-300 hover:text-red-500 transition-colors"
-          >
-            <LogOut size={22} />
-          </button>
+        <div className="flex gap-4 text-gray-400">
+          <Moon size={22} />
+          <Bell size={22} />
         </div>
       </div>
 
       <main className="px-5 space-y-6">
-        {/* --- USER CARD --- */}
+        {/* --- MAIN PROFILE CARD --- */}
         <div className="bg-white rounded-[40px] p-6 shadow-sm border border-[#F0E6E4] relative">
           <button className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full text-gray-400">
             <Edit3 size={18} />
@@ -77,17 +69,10 @@ export default function ProfilePage() {
             <div>
               <h2 className="text-2xl font-black text-[#2E2A28]">{profile?.username || 'kawaii'}</h2>
               <p className="text-xs font-bold text-gray-300 italic">@{profile?.username || 'kawaii'}</p>
-              <div className="flex gap-2 mt-2">
-                <span className="bg-[#EBE5FF] text-[#A389F4] text-[10px] font-black px-3 py-1 rounded-full flex items-center gap-1">
-                  <Moon size={10} className="fill-[#A389F4]" /> Dreaming
-                </span>
-                <span className="bg-[#F8F9FB] text-gray-300 text-[10px] font-black px-3 py-1 rounded-full">
-                  Tickets + Gifts
-                </span>
-              </div>
             </div>
           </div>
 
+          {/* Social Stats */}
           <div className="flex gap-3 mb-4">
             <div className="flex items-center gap-1.5 bg-[#F8F9FB] px-3 py-1.5 rounded-full text-[10px] font-bold text-gray-400">
               <ShieldAlert size={14} /> Not Verified
@@ -97,15 +82,26 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <p className="text-xs text-gray-400 font-medium leading-relaxed">
+          <p className="text-xs text-gray-400 font-medium leading-relaxed border-b border-[#F8F9FB] pb-4">
             {profile?.bio || "Add a short bio so other traders know your style."}
           </p>
-          <p className="text-[10px] text-gray-300 font-bold uppercase mt-4 tracking-widest">
-            Joined {new Date(profile?.created_at || Date.now()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-          </p>
+
+          {/* --- LOGOUT SECTION (BOTTOM OF CARD) --- */}
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center justify-between pt-4 group transition-all"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-red-50 rounded-xl text-red-300 group-hover:bg-red-100 transition-colors">
+                <LogOut size={18} />
+              </div>
+              <span className="text-sm font-bold text-red-300">Sign Out</span>
+            </div>
+            <Sparkles size={16} className="text-red-100" />
+          </button>
         </div>
 
-        {/* --- STATS GRID --- */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           {[
             { label: 'Total Trades', val: 0 },
@@ -119,33 +115,6 @@ export default function ProfilePage() {
             </div>
           ))}
         </div>
-
-        {/* --- INVENTORY PREVIEW --- */}
-        <section>
-          <div className="flex justify-between items-center mb-4 px-1">
-            <h3 className="font-black text-[#2E2A28]">Inventory Preview</h3>
-            <button onClick={() => navigate('/wardrobe')} className="text-[10px] font-bold text-[#4E927E] uppercase tracking-widest">Open Wardrobe</button>
-          </div>
-          <div className="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-            {[1, 2, 3].map((_, i) => (
-              <div key={i} className="min-w-[140px] aspect-square bg-white rounded-[32px] border border-[#F0E6E4] p-2 flex flex-col shadow-sm">
-                <div className="flex-1 bg-gradient-to-br from-[#F5EAFF] to-[#E5D4FF] rounded-2xl flex items-center justify-center relative overflow-hidden">
-                  <Package size={32} className="text-white opacity-40" />
-                  <div className="absolute top-2 left-2 bg-white/40 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md backdrop-blur-sm">SUPER</div>
-                  <div className="absolute bottom-2 left-2 bg-black/10 text-white text-[8px] font-black px-2 py-1 rounded-full">x9</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* --- LOG OUT FOOTER (Optional Alternative) --- */}
-        <button 
-          onClick={handleLogout}
-          className="w-full py-4 text-xs font-black text-red-300 uppercase tracking-[0.2em] border-t border-[#F0E6E4] mt-8 opacity-50 hover:opacity-100 transition-opacity"
-        >
-          Sign Out of Kumomint
-        </button>
       </main>
     </div>
   );
