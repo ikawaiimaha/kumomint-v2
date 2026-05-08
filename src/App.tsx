@@ -17,14 +17,12 @@ import RegisterPage from './pages/RegisterPage';
 import BottomNav from './components/BottomNav';
 import { Sparkles } from 'lucide-react';
 
-// --- THE BOUNCER (Protected Route Alternative) ---
-// This handles the "Is logged in?" check for the whole app in one place.
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app-dark)]">
         <Sparkles className="animate-spin text-[var(--accent)]" />
       </div>
     );
@@ -38,14 +36,14 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider>
         <Router>
-  <div className="min-h-screen bg-[var(--bg-app-dark)] text-[var(--text-main-dark)] transition-colors duration-500 pb-24">
+          <div className="min-h-screen bg-[var(--bg-app-dark)] text-[var(--text-main-dark)] transition-colors duration-500 pb-24">
             <Routes>
               {/* Public Routes */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/catalog" element={<CatalogPage />} />
 
-              {/* Private "Orbit" Routes (Bouncer Protected) */}
+              {/* Private "Orbit" Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Home />} />
                 <Route path="/wardrobe" element={<WardrobePage />} />
