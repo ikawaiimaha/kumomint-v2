@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   Edit3, 
-  Sparkles, 
   ChevronLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
