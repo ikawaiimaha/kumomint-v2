@@ -3,28 +3,32 @@
 @tailwind utilities;
 
 :root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  background-color: #FDFCF8;
+  /* Light Mode - Soft Cream/Pink */
+  --bg-primary: #FDF8F7;
+  --card-bg: #FFFFFF;
+  --text-main: #2E2A28;
+  --accent: #7ED7C1;
+  --border: #F0E6E4;
 }
 
-html, body {
-  max-width: 100%;
-  overflow-x: hidden;
-  position: relative;
-  margin: 0;
-  padding: 0;
+.dark {
+  /* Galaxy Mode - Moonie Inspiration */
+  --bg-primary: #0F1123;      /* Deep Cosmic Navy */
+  --card-bg: #1B1D3A;        /* Galaxy Purple Card */
+  --text-main: #FFF9E3;      /* Star-light Cream */
+  --accent: #A389F4;         /* Glowing Lavender */
+  --border: #2D1B4E;         /* Deep Nebula Purple */
 }
 
-#root {
-  max-width: 100%;
-  overflow-x: hidden;
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  transition: background-color 0.3s ease;
 }
 
-/* This allows swiping but hides the ugly bar */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+/* Custom "Glass" effect for cards */
+.glass-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 32px;
 }
