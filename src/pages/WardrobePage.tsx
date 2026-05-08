@@ -2,27 +2,15 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
-  Lock, 
-  Unlock, 
-  Clock,
-  Sparkles,
-  Package
+  Sparkles, 
+  Search, 
+  Filter,
+  ChevronLeft
 } from 'lucide-react';
-
-interface InventoryItem {
-  id: string;
-  is_padlocked: boolean;
-  created_at: string;
-  item: {
-    name: string;
-    image_url: string;
-    rarity: string;
-  };
-}
 
 export default function WardrobePage() {
   const { user } = useAuth();
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [inventory, setInventory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,63 +19,60 @@ export default function WardrobePage() {
 
   const fetchInventory = async () => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('inventory')
-      .select('id, is_padlocked, created_at, item:items(name, image_url, rarity)')
+      .select('*, items(*)')
       .eq('trader_id', user?.id);
     
-    if (!error && data) setInventory(data as any);
+    if (data) setInventory(data);
     setLoading(false);
   };
 
-  const togglePadlock = async (id: string, current: boolean) => {
-    await supabase.from('inventory').update({ is_padlocked: !current }).eq('id', id);
-    setInventory(prev => prev.map(i => i.id === id ? { ...i, is_padlocked: !current } : i));
-  };
-
   return (
-    <div className="min-h-screen bg-[#FDF8F7] p-6 pb-32">
-      <header className="mb-8">
-        <h1 className="text-2xl font-black text-[#2E2A28]">Wardrobe</h1>
-        <p className="text-xs font-bold text-gray-300 uppercase tracking-widest mt-1">Your Collection</p>
+    <div className="min-h-screen bg-[#FDF8F7] pb-32">
+      <header className="p-6 bg-white rounded-b-[40px] shadow-sm sticky top-0 z-30">
+        <div className="flex items-center gap-3 mb-6">
+          <button onClick={() => window.history.back()} className="p-2 bg-[#F8F9FB] rounded-full text-gray-400">
+            <ChevronLeft size={20} />
+          </button>
+          <h1 className="text-xl font-black text-[#2E2A28]">My Wardrobe</h1>
+        </div>
+
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
+          <input 
+            type="text"
+            placeholder="Search your items..."
+            className="w-full pl-12 pr-4 py-4 bg-[#F8F9FB] rounded-2xl text-sm font-bold border-none"
+          />
+        </div>
       </header>
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center py-20 opacity-20">
-          <Sparkles className="animate-spin mb-4" />
-          <p className="text-[10px] font-black uppercase tracking-widest">Loading Items...</p>
-        </div>
-      ) : inventory.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4">
-          {inventory.map((inv) => (
-            <div key={inv.id} className="bg-white p-3 rounded-[32px] border border-[#F0E6E4] shadow-sm">
-              <div className="aspect-square bg-[#F8F9FB] rounded-2xl mb-3 flex items-center justify-center relative overflow-hidden">
-                <img src={inv.item.image_url} className="w-full h-full object-contain p-2" alt="" />
-                <button 
-                  onClick={() => togglePadlock(inv.id, inv.is_padlocked)}
-                  className="absolute bottom-2 right-2 p-2 bg-white rounded-full shadow-md text-[#7ED7C1] active:scale-90 transition-transform"
-                >
-                  {inv.is_padlocked ? <Lock size={14} /> : <Unlock size={14} />}
-                </button>
-                {Math.floor((new Date().getTime() - new Date(inv.created_at).getTime()) / 86400000) < 14 && (
-                  <div className="absolute top-2 left-2 bg-black/60 text-white p-1 rounded-full">
-                    <Clock size={10} />
-                  </div>
-                )}
+      <main className="px-6 mt-6">
+        {loading ? (
+          <div className="flex justify-center py-20"><Sparkles className="animate-spin text-[#7ED7C1]" /></div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            {inventory.map((entry) => (
+              <div key={entry.id} className="bg-white p-3 rounded-[32px] border border-[#F0E6E4] shadow-sm">
+                <div className="aspect-square bg-[#F8F9FB] rounded-2xl mb-3 flex items-center justify-center">
+                  <img src={entry.items?.image_url} className="w-full h-full object-contain p-2" alt="" />
+                </div>
+                <div className="px-1 text-center">
+                  <h3 className="text-[11px] font-bold text-[#2E2A28] truncate">{entry.items?.name}</h3>
+                </div>
               </div>
-              <div className="px-1">
-                <p className="text-[8px] font-black text-gray-300 uppercase mb-0.5">{inv.item.rarity}</p>
-                <p className="text-[11px] font-bold text-[#2E2A28] truncate">{inv.item.name}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-20 opacity-20">
-          <Package size={48} className="mx-auto mb-4" />
-          <p className="font-bold">No items found</p>
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+
+        {!loading && inventory.length === 0 && (
+          <div className="text-center py-20 opacity-20">
+            <Filter size={48} className="mx-auto mb-4" />
+            <p className="font-bold uppercase tracking-widest text-xs text-center">Your wardrobe is empty</p>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
