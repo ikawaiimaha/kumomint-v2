@@ -5,7 +5,6 @@ import {
   Search, 
   Heart, 
   Sparkles, 
-  Clock,
   Filter,
   ChevronLeft
 } from 'lucide-react';
@@ -31,7 +30,6 @@ export default function CatalogPage() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRarity, setSelectedRarity] = useState<string | null>(null);
   const [selectedCollection, setSelectedCollection] = useState<string>('all');
@@ -42,11 +40,9 @@ export default function CatalogPage() {
 
   const fetchInitialData = async () => {
     setLoading(true);
-    // Fetch Collections for the filter dropdown
     const { data: colls } = await supabase.from('collections').select('id, name').eq('is_active', true);
     if (colls) setCollections(colls);
 
-    // Fetch all items
     const { data: itemList } = await supabase.from('items').select('*').order('release_date', { ascending: false });
     if (itemList) setItems(itemList);
     setLoading(false);
@@ -63,7 +59,6 @@ export default function CatalogPage() {
     else alert("Added to Wishlist!");
   };
 
-  // Logic to filter the list locally for speed
   const filteredItems = items.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesRarity = selectedRarity ? item.rarity === selectedRarity : true;
@@ -81,7 +76,6 @@ export default function CatalogPage() {
           <h1 className="text-xl font-black text-[#2E2A28]">Item Catalog</h1>
         </div>
 
-        {/* SEARCH BAR */}
         <div className="relative mb-4">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
           <input 
@@ -93,7 +87,6 @@ export default function CatalogPage() {
           />
         </div>
 
-        {/* FILTERS */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
           <select 
             className="bg-[#F8F9FB] border-none rounded-full px-4 py-2 text-[10px] font-black uppercase text-gray-500"
