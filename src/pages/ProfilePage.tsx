@@ -16,7 +16,6 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // 1. Declare fetch function
   const fetchProfile = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from('traders').select('username').eq('id', user.id).single();
@@ -50,30 +49,19 @@ export default function ProfilePage() {
       </header>
 
       <main className="space-y-8 relative">
-        {/* THE GLOWING MOON EFFECT */}
-        <div className="absolute -top-10 right-4 w-16 h-16 bg-[#FFF4D2] rounded-full shadow-[0_0_40px_rgba(255,244,210,0.6)] z-0" />
+        <div className="absolute top-4 right-0 w-20 h-20 bg-[#FFF4D2] rounded-full shadow-[0_0_40px_rgba(255,244,210,0.6)] z-0" />
 
-        {/*
-          MAIN PROFILE CARD
-          Inspired by image_6.png with clean white, large circular avatar,
-          and left-aligned text next to it. 
-          Added z-10 and mt-12 so it sits perfectly under the moon.
-        */}
         <div className="bg-white rounded-[32px] p-6 shadow-xl shadow-black/10 relative overflow-hidden text-[#1A1A1A] z-10 mt-12">
-          {/* subtle mint background blur */}
           <div className="absolute -top-10 -left-10 w-32 h-32 bg-[var(--accent)] opacity-10 blur-3xl pointer-events-none" />
           
           <div className="flex items-center gap-6 mb-8 relative z-10">
-            {/* LARGE CIRCULAR AVATAR (like image_6.png) */}
-            <div className="w-24 h-24 rounded-full border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)] bg-white relative">
+            <div className="w-24 h-24 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)] bg-white relative">
               <span className="text-4xl font-black text-[var(--accent)]">{username.charAt(0)}</span>
-              {/* Added edit pencil near avatar from image_6.png */}
-              <button onClick={() => navigate('/edit-profile')} className="absolute bottom-1 right-1 p-1.5 bg-[var(--accent)] text-white rounded-full">
+              <button onClick={() => navigate('/edit-profile')} className="absolute -bottom-2 -right-2 p-1.5 bg-[var(--accent)] text-white rounded-full">
                 <Edit3 size={14} />
               </button>
             </div>
 
-            {/* LEFT-ALIGNED TEXT NEXT TO AVATAR */}
             <div className="flex-1">
               <h2 className="text-2xl font-black mb-1">{username}</h2>
               <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest flex items-center gap-2">
@@ -81,7 +69,6 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            {/* SETTINGS COG ICON (leads to edit persona) */}
             <button 
               onClick={() => navigate('/edit-profile')}
               className="p-3 bg-[#F0EEFF] text-[var(--accent)] rounded-2xl self-start"
@@ -90,9 +77,6 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          {/* INTEGRATED STATS LIST (like image_6.png) 
-            Instead of separate cards, stats are clean list items.
-          */}
           <div className="space-y-4 border-t border-[#F0EEFF] pt-6 mb-6">
             <div className="flex justify-between items-center bg-[#F8F7FF] p-5 rounded-2xl">
               <span className="text-sm font-black text-[#666666] uppercase tracking-wider">Total Mints</span>
@@ -104,7 +88,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* LOGOUT BUTTON as clean list item */}
           <button 
             onClick={() => { signOut(); navigate('/login'); }} 
             className="w-full flex justify-between items-center p-5 bg-[#FFF0F0] text-red-500 rounded-2xl font-black text-xs uppercase"
@@ -116,9 +99,8 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* Empty State Preview (using cute sad kumoru) */}
         <div className="relative z-10">
-           <div className="flex justify-between items-center mb-4 opacity-40">
+           <div className="flex justify-between items-center mb-4 opacity-70">
              <h3 className="font-black text-sm uppercase">Recent Finds</h3>
              <Package size={16} />
            </div>
@@ -128,7 +110,7 @@ export default function ProfilePage() {
                 alt="Sad Kumoru" 
                 className="w-24 h-24 mb-4 drop-shadow-lg opacity-80" 
               />
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-40">No items in orbit</p>
+              <p className="text-[10px] font-black uppercase tracking-widest opacity-70">No items in orbit</p>
            </div>
         </div>
       </main>
