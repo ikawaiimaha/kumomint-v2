@@ -55,3 +55,11 @@ export default function TradePage() {
     </div>
   );
 }
+<BottomSheet 
+  isOpen={isPickerOpen} 
+  onClose={() => setIsPickerOpen(false)} 
+  title="Select Item"
+>
+  {/* Map your inventory items here */}
+</BottomSheet>
+
