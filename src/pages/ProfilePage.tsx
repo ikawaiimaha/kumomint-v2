@@ -67,7 +67,7 @@ export default function ProfilePage() {
     }
   };
 
-  // --- THE FIXED HANDLE SAVE FUNCTION ---
+  // --- THE DEFINED HANDLE SAVE FUNCTION ---
   const handleSave = async () => {
     try {
       setIsUploading(true);
@@ -87,35 +87,28 @@ export default function ProfilePage() {
     }
   };
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/login');
-  };
-
   if (loading) return (
     <div className="min-h-screen bg-[#FDF8F7] flex items-center justify-center">
       <Sparkles className="animate-spin text-[#7ED7C1]" />
     </div>
   );
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-[#FDF8F7]">
-        <div className="w-20 h-20 bg-white rounded-[32px] flex items-center justify-center shadow-sm mb-6">
-           <Package size={32} className="text-[#7ED7C1]" />
-        </div>
-        <h2 className="font-black text-xl mb-4 text-[#2E2A28]">Not Logged In</h2>
-        <button onClick={() => navigate('/login')} className="bg-[#2E2A28] text-white px-8 py-4 rounded-2xl font-black uppercase text-xs">Go to Login</button>
+  if (!user) return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-[#FDF8F7]">
+      <div className="w-20 h-20 bg-white rounded-[32px] flex items-center justify-center shadow-sm mb-6">
+         <Package size={32} className="text-[#7ED7C1]" />
       </div>
-    );
-  }
+      <h2 className="font-black text-xl mb-4 text-[#2E2A28] text-center">Not Logged In</h2>
+      <button onClick={() => navigate('/login')} className="bg-[#2E2A28] text-white px-8 py-4 rounded-2xl font-black uppercase text-xs">Go to Login</button>
+    </div>
+  );
 
   return (
     <div className={`min-h-screen pb-32 transition-colors ${isDark ? 'bg-[#2E2A28] text-white' : 'bg-[#FDF8F7]'}`}>
       <div className="p-6 flex justify-between items-center">
         <h1 className={`text-xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>My Profile</h1>
         <div className="flex gap-4">
-          <button onClick={() => setIsDark(!isDark)} className="text-gray-400">
+          <button onClick={() => setIsDark(!isDark)} className="text-gray-400 active:scale-90 transition-transform">
             <Moon size={22} className={isDark ? "fill-yellow-400 text-yellow-400" : ""} />
           </button>
           <button onClick={() => navigate('/notifications')} className="text-gray-400 relative">
@@ -170,9 +163,9 @@ export default function ProfilePage() {
                 onChange={e => setBio(e.target.value)} 
                 placeholder="Write your bio..."
               />
-              <div className="bg-[#FEF9C3] p-4 rounded-2xl flex gap-3">
+              <div className="bg-[#FEF9C3] p-4 rounded-2xl flex gap-3 items-start border border-[#FEF08A]">
                 <Info size={18} className="text-yellow-600 shrink-0 mt-0.5" />
-                <p className="text-[10px] font-bold text-yellow-800">Only HKDV avatars are allowed. Manual approval required.</p>
+                <p className="text-[10px] font-bold text-yellow-800 leading-tight">Only HKDV avatars are allowed. Manual approval required.</p>
               </div>
               <button onClick={handleSave} className="w-full bg-[#7ED7C1] text-white py-3 rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2">
                 <Check size={16} /> {isUploading ? 'SAVING...' : 'SAVE CHANGES'}
@@ -181,7 +174,7 @@ export default function ProfilePage() {
           ) : (
             <>
               <p className="text-xs font-bold text-gray-400 mb-4">{profile?.bio || "No bio yet."}</p>
-              <button onClick={handleLogout} className="w-full flex items-center justify-between pt-4 border-t border-[#F8F9FB] text-red-300 active:scale-95 transition-transform">
+              <button onClick={async () => { await signOut(); navigate('/login'); }} className="w-full flex items-center justify-between pt-4 border-t border-[#F8F9FB] text-red-300 active:scale-95 transition-transform">
                 <div className="flex items-center gap-3">
                   <LogOut size={18} />
                   <span className="text-sm font-bold">Sign Out</span>
@@ -194,25 +187,25 @@ export default function ProfilePage() {
         {!isEditing && (
           <div className="grid grid-cols-2 gap-3">
             <div className={`p-5 rounded-[32px] border shadow-sm text-center ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'}`}>
-              <p className="text-[10px] font-bold text-gray-400 uppercase">Trades</p>
-              <p className="text-2xl font-black">0</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase text-center">Trades</p>
+              <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>0</p>
             </div>
             <div className={`p-5 rounded-[32px] border shadow-sm text-center ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'}`}>
-              <p className="text-[10px] font-bold text-gray-400 uppercase">Mints</p>
-              <p className="text-2xl font-black">10</p>
+              <p className="text-[10px] font-bold text-gray-400 uppercase text-center">Mints</p>
+              <p className={`text-2xl font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>10</p>
             </div>
           </div>
         )}
 
         {!isEditing && (
           <section>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-4 px-1">
               <h3 className={`font-black ${isDark ? 'text-white' : 'text-[#2E2A28]'}`}>Inventory Preview</h3>
-              <button onClick={() => navigate('/wardrobe')} className="text-[10px] font-black text-[#4E927E] uppercase">Open</button>
+              <button onClick={() => navigate('/wardrobe')} className="text-[10px] font-black text-[#4E927E] uppercase text-center">Open</button>
             </div>
             <div className={`rounded-[32px] border p-6 flex flex-col items-center opacity-30 ${isDark ? 'bg-[#3E3A38] border-none' : 'bg-white border-[#F0E6E4]'}`}>
               <Package size={32} className="text-gray-300 mb-2" />
-              <p className="text-[8px] font-black">No Items</p>
+              <p className="text-[8px] font-black uppercase text-center">No Items</p>
             </div>
           </section>
         )}
