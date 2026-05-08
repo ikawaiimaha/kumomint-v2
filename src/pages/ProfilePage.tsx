@@ -13,7 +13,9 @@ import {
   Package,
   Check,
   X,
-  Camera
+  Camera,
+  Info,
+  Clock
 } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -57,27 +59,28 @@ export default function ProfilePage() {
       const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
       const filePath = `${fileName}`;
 
-      // 1. Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
-      // 2. Get Public URL
       const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
       const publicUrl = data.publicUrl;
 
-      // 3. Update Database immediately so it saves
+      // Update Database - Set status to 'pending' for manual approval
       const { error: updateError } = await supabase
         .from('traders')
-        .update({ avatar_url: publicUrl })
+        .update({ 
+          avatar_url: publicUrl,
+          avatar_status: 'pending' // You can use this for your manual approval logic
+        })
         .eq('id', user?.id);
 
       if (updateError) throw updateError;
 
       setAvatarUrl(publicUrl);
-      alert("Avatar updated!");
+      setProfile({...profile, avatar_status: 'pending'});
     } catch (error: any) {
       alert(error.message);
     } finally {
@@ -122,19 +125,18 @@ export default function ProfilePage() {
           
           <button 
             onClick={() => setIsEditing(!isEditing)} 
-            className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full text-gray-400"
+            className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full text-gray-400 active:scale-90"
           >
             {isEditing ? <X size={18} /> : <Edit3 size={18} />}
           </button>
           
           <div className="flex items-center gap-4 mb-4">
-            {/* --- AVATAR UPLOAD SECTION --- */}
             <div 
               onClick={() => isEditing && fileInputRef.current?.click()}
               className={`w-20 h-20 bg-[#F8F9FB] rounded-[30px] flex items-center justify-center border-2 border-white shadow-inner relative overflow-hidden ${isEditing ? 'cursor-pointer group' : ''}`}
             >
               {avatarUrl ? (
-                <img src={avatarUrl} className="w-full h-full object-cover" alt="Avatar" />
+                <img src={avatarUrl} className="w-full h-full object-cover" alt="" />
               ) : (
                 <span className="text-3xl font-black text-gray-300">{username?.charAt(0).toUpperCase()}</span>
               )}
@@ -147,13 +149,7 @@ export default function ProfilePage() {
               {uploading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center"><Sparkles className="animate-spin text-[#7ED7C1]" size={20} /></div>}
             </div>
 
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={uploadAvatar} 
-              className="hidden" 
-              accept="image/*" 
-            />
+            <input type="file" ref={fileInputRef} onChange={uploadAvatar} className="hidden" accept="image/*" />
             
             <div className="flex-1">
               {isEditing ? (
@@ -164,7 +160,10 @@ export default function ProfilePage() {
                 />
               ) : (
                 <>
-                  <h2 className="text-2xl font-black">{profile?.username || 'kawaii'}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-black">{profile?.username || 'kawaii'}</h2>
+                    {profile?.avatar_status === 'pending' && <Clock size={14} className="text-yellow-500" title="Avatar pending approval" />}
+                  </div>
                   <p className="text-xs font-bold text-gray-300 italic">@{profile?.username || 'kawaii'}</p>
                 </>
               )}
@@ -177,6 +176,7 @@ export default function ProfilePage() {
                 className="w-full bg-[#F8F9FB] border-none rounded-2xl px-4 py-3 text-xs font-bold min-h-[80px]"
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
+                placeholder="Add a bio..."
               />
             ) : (
               <p className="text-xs font-bold text-gray-400 leading-relaxed">{profile?.bio || "No bio yet."}</p>
@@ -184,13 +184,33 @@ export default function ProfilePage() {
           </div>
 
           {isEditing ? (
-            <button onClick={handleSave} className="w-full bg-[#7ED7C1] text-white py-3 rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2">
-              <Check size={16} /> Save Profile
-            </button>
+            <div className="space-y-4">
+              {/* --- THE NOTE FOR HKDV & APPROVAL --- */}
+              <div className="bg-[#FEF9C3] p-4 rounded-2xl flex gap-3 items-start border border-[#FEF08A]">
+                <Info size={18} className="text-yellow-600 shrink-0 mt-0.5" />
+                <p className="text-[10px] font-bold text-yellow-800 leading-tight">
+                  Please use your own official HKDV avatar. All profile pictures are manually approved before they are visible to others.
+                </p>
+              </div>
+
+              <button onClick={handleSave} className="w-full bg-[#7ED7C1] text-white py-3 rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2">
+                <Check size={16} /> Save Changes
+              </button>
+            </div>
           ) : (
-            <button onClick={handleLogout} className="w-full flex items-center justify-between pt-4 border-t border-[#F8F9FB]">
-              <div className="flex items-center gap-3 text-red-300"><LogOut size={18} /><span className="text-sm font-bold">Sign Out</span></div>
-            </button>
+            <>
+              <div className="flex gap-3 mb-4">
+                <div className="flex items-center gap-1.5 bg-[#F8F9FB] px-3 py-1.5 rounded-full text-[10px] font-bold text-gray-400">
+                  <ShieldAlert size={14} /> Not Verified
+                </div>
+                <div className="flex items-center gap-1.5 bg-[#F8F9FB] px-3 py-1.5 rounded-full text-[10px] font-bold text-gray-400">
+                  <Heart size={14} /> 0 likes
+                </div>
+              </div>
+              <button onClick={handleLogout} className="w-full flex items-center justify-between pt-4 border-t border-[#F8F9FB]">
+                <div className="flex items-center gap-3 text-red-300"><LogOut size={18} /><span className="text-sm font-bold">Sign Out</span></div>
+              </button>
+            </>
           )}
         </div>
 
