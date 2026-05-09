@@ -14,18 +14,27 @@ export default function BottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#1A0B2E]/90 backdrop-blur-xl border-t border-[#F0E6E4] dark:border-[#483475] px-6 py-4 pb-10 flex justify-between items-center z-50">
-      {navItems.map((item) => {
-        const isActive = location.pathname === item.path;
-        const Icon = item.icon;
-        
-        return (
-          <button key={item.path} onClick={() => navigate(item.path)} className="flex flex-col items-center relative transition-all active:scale-90">
-            <Icon size={24} className={isActive ? "text-[#7ED7C1] dark:text-[#A389F4]" : "text-gray-300 dark:text-[#2D1B4E]"} />
-            {isActive && <div className="absolute -bottom-3 w-1.5 h-1.5 bg-[#7ED7C1] dark:bg-[#A389F4] rounded-full shadow-[0_0_8px_#A389F4]" />}
-          </button>
-        );
-      })}
+    <div className="fixed bottom-6 left-6 right-6 z-50">
+      <div className="bg-[var(--bottom-nav)] backdrop-blur-md rounded-[32px] py-4 px-6 flex justify-between items-center shadow-2xl border border-[var(--accent)]/20 transition-colors duration-500">
+        {navItems.map(({ icon: Icon, path }) => {
+          const isActive = location.pathname === path;
+          return (
+            <button
+              key={path}
+              onClick={() => navigate(path)}
+              className="relative p-2 flex flex-col items-center justify-center transition-all"
+            >
+              <Icon 
+                size={24} 
+                className={isActive ? 'text-[var(--accent)] drop-shadow-md' : 'text-[var(--nav-icon)]'} 
+              />
+              {isActive && (
+                <span className="absolute -bottom-2 w-1.5 h-1.5 bg-[var(--accent)] rounded-full drop-shadow-[0_0_5px_rgba(163,137,244,1)]" />
+              )}
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
