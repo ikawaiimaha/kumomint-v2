@@ -36,6 +36,22 @@ export default function EditProfile() {
     load();
   }, [user]);
 
+  // --- NEW FORMATTING LOGIC ---
+  const handleBirthdayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // 1. Remove anything that isn't a number
+    let cleaned = e.target.value.replace(/\D/g, '');
+    
+    // 2. Prevent entering more than 4 digits
+    cleaned = cleaned.substring(0, 4);
+    
+    // 3. Automatically insert the slash after the month
+    if (cleaned.length > 2) {
+      cleaned = `${cleaned.substring(0, 2)}/${cleaned.substring(2)}`;
+    }
+    
+    setBirthday(cleaned);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -63,16 +79,17 @@ export default function EditProfile() {
   };
 
   return (
-    <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app-dark)] text-[var(--text-main-dark)]">
+    <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500">
       <header className="flex items-center gap-4 mb-8">
-        <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-[var(--bg-card-dark)] border border-[var(--accent)]/30">
+        <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--accent)]/30 transition-colors duration-500">
           <ChevronLeft size={20} />
         </button>
         <h1 className="text-xl font-black uppercase tracking-tighter">Edit Persona</h1>
       </header>
 
       <main>
-        <form onSubmit={handleSave} className="bg-[#EAE4FF] rounded-[32px] p-6 shadow-xl space-y-6 text-[#1A1A1A]">
+        {/* Swapped hardcoded purple for our new dynamic glass panel */}
+        <form onSubmit={handleSave} className="glass-panel p-6 space-y-6">
           
           <div>
             <label className="text-[10px] font-black uppercase opacity-60 block mb-2 tracking-widest text-[var(--accent)]">Display Name</label>
@@ -80,7 +97,7 @@ export default function EditProfile() {
               type="text" 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full p-4 bg-white rounded-2xl font-bold outline-none ring-2 ring-transparent focus:ring-[var(--accent)] transition-all"
+              className="w-full p-4 bg-[var(--bg-app)] text-[var(--text-main)] rounded-2xl font-bold outline-none ring-2 ring-transparent focus:ring-[var(--accent)] transition-all"
               placeholder="e.g. KawaiiMaha"
               required
             />
@@ -92,7 +109,7 @@ export default function EditProfile() {
               type="text" 
               value={pronouns}
               onChange={(e) => setPronouns(e.target.value)}
-              className="w-full p-4 bg-white rounded-2xl font-bold outline-none ring-2 ring-transparent focus:ring-[var(--accent)] transition-all"
+              className="w-full p-4 bg-[var(--bg-app)] text-[var(--text-main)] rounded-2xl font-bold outline-none ring-2 ring-transparent focus:ring-[var(--accent)] transition-all"
               placeholder="e.g. she/her"
             />
           </div>
@@ -102,7 +119,7 @@ export default function EditProfile() {
             <select 
               value={sanrioBuddy}
               onChange={(e) => setSanrioBuddy(e.target.value)}
-              className="w-full p-4 bg-white rounded-2xl font-bold outline-none ring-2 ring-transparent focus:ring-[var(--accent)] transition-all appearance-none"
+              className="w-full p-4 bg-[var(--bg-app)] text-[var(--text-main)] rounded-2xl font-bold outline-none ring-2 ring-transparent focus:ring-[var(--accent)] transition-all appearance-none"
             >
               <option value="">Select a buddy...</option>
               <option value="Hello Kitty">Hello Kitty</option>
@@ -121,7 +138,7 @@ export default function EditProfile() {
               <select 
                 value={tradeVibe}
                 onChange={(e) => setTradeVibe(e.target.value)}
-                className="w-full p-4 bg-white rounded-2xl font-bold outline-none ring-2 ring-transparent focus:ring-[var(--accent)] transition-all appearance-none text-sm"
+                className="w-full p-4 bg-[var(--bg-app)] text-[var(--text-main)] rounded-2xl font-bold outline-none ring-2 ring-transparent focus:ring-[var(--accent)] transition-all appearance-none text-sm"
               >
                 <option value="">Select vibe...</option>
                 <option value="Casual">Casual</option>
@@ -131,13 +148,13 @@ export default function EditProfile() {
             </div>
 
             <div>
-              <label className="text-[10px] font-black uppercase opacity-60 block mb-2 tracking-widest text-[var(--accent)]">Birthday (MM/DD)</label>
+              <label className="text-[10px] font-black uppercase opacity-60 block mb-2 tracking-widest text-[var(--accent)]">Birthday</label>
               <input 
                 type="text" 
                 value={birthday}
-                onChange={(e) => setBirthday(e.target.value)}
-                className="w-full p-4 bg-white rounded-2xl font-bold outline-none ring-2 ring-transparent focus:ring-[var(--accent)] transition-all text-sm"
-                placeholder="e.g. 10/31"
+                onChange={handleBirthdayChange} // Using the new function
+                className="w-full p-4 bg-[var(--bg-app)] text-[var(--text-main)] rounded-2xl font-bold outline-none ring-2 ring-transparent focus:ring-[var(--accent)] transition-all text-sm"
+                placeholder="MM/DD"
                 maxLength={5}
               />
             </div>
