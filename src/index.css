@@ -4,26 +4,87 @@
 
 @layer base {
   html, body {
+    /* 1. Force the cute bubbly font globally */
     font-family: 'Fredoka', sans-serif !important;
+    background-color: var(--bg-app);
+    color: var(--text-main);
   }
 }
 
-/* LIGHT MODE (Daytime) */
+/* =========================================
+   LIGHT MODE ("Sunny Garden") - Default
+========================================= */
 :root {
-  --bg-app: #FDFBFF;      /* Soft warm white */
-  --bg-card: #FFFFFF;     /* Pure white cards */
-  --text-main: #1A1A1A;   /* Dark text for readability */
-  --accent: #A389F4;      /* Signature purple */
+  /* Core App Variables (Used across your components) */
+  --bg-app: #FFFBF7;
+  --bg-card: #FFFFFF; 
+  --text-main: #3D2B1F;
+  --text-muted: #9A8B7A; /* Darkened to pass WCAG Accessibility */
+  --accent: #A389F4;
   --bottom-nav: rgba(255, 255, 255, 0.9);
-  --nav-icon: #A1A1AA;    /* Gray for inactive icons */
+  --nav-icon: #A1A1AA;
+
+  /* Expanded Kumomint Palette (Ready for new components) */
+  --bg-secondary: #F5EDE8;
+  --bg-tertiary: #EDE4DD;
+  --border-subtle: rgba(126, 215, 193, 0.25);
+  --accent-green: #7ED7C1;
+  --accent-pink: #FFB8D0;
+  --accent-sky: #B4E7FF;
+  --shadow-card: rgba(61, 43, 31, 0.06);
 }
 
-/* DARK MODE (Nighttime) */
+/* =========================================
+   DARK MODE ("Starry Nebula")
+========================================= */
 .dark {
-  --bg-app: #07071F;      /* Deep night sky */
-  --bg-card: #12122F;     /* Dark indigo cards */
-  --text-main: #E6E6FF;   /* Soft white text */
-  --accent: #A389F4;
-  --bottom-nav: rgba(18, 18, 47, 0.9);
-  --nav-icon: rgba(255, 255, 255, 0.4);
+  /* Core App Variables */
+  --bg-app: #0F0B1E;
+  --bg-card: #1A1433;
+  --text-main: #F0E6FF;
+  --text-muted: #6B5B8A;
+  --accent: #BB98FF; /* Brighter glowing lavender for dark backgrounds */
+  --bottom-nav: rgba(26, 20, 51, 0.9);
+  --nav-icon: rgba(240, 230, 255, 0.4);
+
+  /* Expanded Kumomint Palette */
+  --bg-secondary: #1A1433;
+  --bg-tertiary: #241D45;
+  --border-subtle: rgba(155, 89, 182, 0.20);
+  --accent-green: #7ED7C1;
+  --accent-pink: #FF8FB0;
+  --accent-cyan: #72E9FB;
+  --shadow-card: rgba(155, 89, 182, 0.12);
+}
+
+/* =========================================
+   SMOOTH THEME TRANSITIONS & GLASSMORPHISM
+========================================= */
+
+/* Creates that buttery 1.5s fade when clicking the Sun/Moon toggle */
+html, body, #root, div, span, button, a, p, h1, h2, h3, h4, h5, h6, svg, path {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+  transition-duration: 400ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* Base Light Glass Panel */
+.glass-panel {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(245, 237, 232, 0.75) 100%);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 16px rgba(61, 43, 31, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+}
+
+/* Dark Glass Override */
+.dark .glass-panel {
+  background: linear-gradient(180deg, rgba(26, 20, 51, 0.75) 0%, rgba(36, 29, 69, 0.65) 100%);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(155, 89, 182, 0.18);
+  border-top: 1px solid rgba(201, 177, 255, 0.1);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 0 40px rgba(155, 89, 182, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
