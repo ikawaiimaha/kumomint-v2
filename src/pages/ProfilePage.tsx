@@ -5,7 +5,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   LogOut, Bell, Moon, Sun, Edit3, Sparkles, 
-  Clock, Package, Settings, ChevronRight 
+  Clock, Package, Settings, ChevronRight, Calendar, Heart 
 } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -13,13 +13,34 @@ export default function ProfilePage() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   
-  const [username, setUsername] = useState('');
+  // Grouped profile state for cleaner code
+  const [profile, setProfile] = useState({
+    username: '',
+    pronouns: '',
+    sanrioBuddy: '',
+    tradeVibe: '',
+    birthday: ''
+  });
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase.from('traders').select('username').eq('id', user.id).single();
-    if (data) setUsername(data.username || 'Kawaii');
+    // FETCHING ALL THE NEW COLUMNS!
+    const { data } = await supabase
+      .from('traders')
+      .select('username, pronouns, sanrio_buddy, trade_vibe, birthday')
+      .eq('id', user.id)
+      .single();
+      
+    if (data) {
+      setProfile({
+        username: data.username || 'Kawaii',
+        pronouns: data.pronouns || '',
+        sanrioBuddy: data.sanrio_buddy || '',
+        tradeVibe: data.trade_vibe || '',
+        birthday: data.birthday || ''
+      });
+    }
     setLoading(false);
   }, [user]);
 
@@ -49,49 +70,85 @@ export default function ProfilePage() {
       </header>
 
       <main className="space-y-8 relative">
-        <div className="absolute top-4 right-0 w-20 h-20 bg-[#FFF4D2] rounded-full shadow-[0_0_40px_rgba(255,244,210,0.6)] z-0" />
+        {/* Subtle glow behind the card */}
+        <div className="absolute top-4 right-0 w-20 h-20 bg-[var(--accent-sky)] rounded-full blur-3xl opacity-30 z-0" />
 
-        {/* MAIN PROFILE CARD */}
-        <div className="bg-[#EAE4FF] rounded-[32px] p-6 shadow-xl shadow-[var(--accent)]/10 relative overflow-hidden text-[#1A1A1A] z-10 mt-12 transition-colors duration-500">
-          <div className="absolute -top-10 -left-10 w-32 h-32 bg-[var(--accent)] opacity-20 blur-3xl pointer-events-none" />
+        {/* MAIN PROFILE CARD using the new glass-panel class */}
+        <div className="glass-panel p-6 relative overflow-hidden z-10 mt-12">
           
-          <div className="flex items-center gap-6 mb-8 relative z-10">
+          <div className="flex items-center gap-6 mb-6 relative z-10">
+            {/* Avatar */}
             <div className="w-24 h-24 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)] bg-white relative">
-              <span className="text-4xl font-black text-[var(--accent)]">{username.charAt(0)}</span>
+              <span className="text-4xl font-black text-[var(--accent)]">{profile.username.charAt(0)}</span>
               <button onClick={() => navigate('/edit-profile')} className="absolute -bottom-2 -right-2 p-1.5 bg-[var(--accent)] text-white rounded-full">
                 <Edit3 size={14} />
               </button>
             </div>
 
+            {/* Identity Info */}
             <div className="flex-1 pr-12">
-              <h2 className="text-2xl font-black mb-1 break-all">{username}</h2>
-              <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest flex items-center gap-2">
+              <h2 className="text-2xl font-black mb-1 break-all">{profile.username}</h2>
+              
+              {/* PRONOUNS DISPLAY */}
+              {profile.pronouns && (
+                <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 mb-2 inline-block uppercase tracking-wider">
+                  {profile.pronouns}
+                </span>
+              )}
+              
+              <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest flex items-center gap-2 mt-1">
                 <Clock size={12} /> Syncing with Stars
               </p>
             </div>
 
+            {/* Absolute Gear Icon */}
             <button 
               onClick={() => navigate('/edit-profile')}
-              className="absolute top-0 right-0 p-3 bg-white/60 text-[var(--accent)] rounded-2xl"
+              className="absolute top-0 right-0 p-3 bg-[var(--bg-app)]/50 text-[var(--accent)] rounded-2xl hover:bg-[var(--accent)]/10 transition-colors"
             >
               <Settings size={20} />
             </button>
           </div>
 
-          <div className="space-y-4 border-t border-[#F0EEFF] pt-6 mb-6">
-            <div className="flex justify-between items-center bg-[#F8F7FF] p-5 rounded-2xl">
-              <span className="text-sm font-black text-[#666666] uppercase tracking-wider">Total Mints</span>
-              <span className="text-xl font-black">{128}</span>
+          {/* SANRIO BUDDY DISPLAY */}
+          {profile.sanrioBuddy && (
+            <div className="mb-6 flex items-center gap-2 text-xs font-bold bg-[var(--bg-app)]/50 px-4 py-2.5 rounded-2xl border border-[var(--border-subtle)] w-fit text-[var(--text-main)]">
+              <Heart size={14} className="text-[var(--accent-pink)] fill-[var(--accent-pink)]" />
+              Buddy: <span className="text-[var(--accent)]">{profile.sanrioBuddy}</span>
             </div>
-            <div className="flex justify-between items-center bg-[#F8F7FF] p-5 rounded-2xl">
-              <span className="text-sm font-black text-[#666666] uppercase tracking-wider">Trades</span>
-              <span className="text-xl font-black">{14}</span>
+          )}
+
+          {/* STATS GRID - Now accommodates the new data points */}
+          <div className="grid grid-cols-2 gap-3 border-t border-[var(--border-subtle)] pt-6 mb-6">
+            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
+              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Mints</span>
+              <span className="text-lg font-black">128</span>
+            </div>
+            
+            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
+              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Trades</span>
+              <span className="text-lg font-black">14</span>
+            </div>
+
+            {/* TRADE VIBE DISPLAY */}
+            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
+              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Trade Vibe</span>
+              <span className="text-sm font-black text-[var(--accent)]">{profile.tradeVibe || 'Mystery'}</span>
+            </div>
+
+            {/* BIRTHDAY DISPLAY */}
+            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
+              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Birthday</span>
+              <span className="text-sm font-black flex items-center gap-1.5">
+                <Calendar size={14} className="text-[var(--accent-pink)]"/> 
+                {profile.birthday || '??/??'}
+              </span>
             </div>
           </div>
 
           <button 
             onClick={() => { signOut(); navigate('/login'); }} 
-            className="w-full flex justify-between items-center p-5 bg-[#FFF0F0] text-red-500 rounded-2xl font-black text-xs uppercase"
+            className="w-full flex justify-between items-center p-5 bg-red-500/10 text-red-500 rounded-2xl font-black text-xs uppercase hover:bg-red-500/20 transition-colors"
           >
             <div className="flex items-center gap-3">
               <LogOut size={18} /> Logout
@@ -101,7 +158,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="relative z-10">
-           <div className="flex justify-between items-center mb-4 opacity-70">
+           <div className="flex justify-between items-center mb-4 text-[var(--text-muted)]">
              <h3 className="font-black text-sm uppercase">Recent Finds</h3>
              <Package size={16} />
            </div>
@@ -111,7 +168,7 @@ export default function ProfilePage() {
                 alt="Sad Kumoru" 
                 className="w-24 h-24 mb-4 drop-shadow-lg opacity-80" 
               />
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-70">No items in orbit</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">No items in orbit</p>
            </div>
         </div>
       </main>
