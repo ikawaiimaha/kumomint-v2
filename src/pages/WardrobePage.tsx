@@ -1,92 +1,115 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Search, ChevronLeft, Package, LogIn } from 'lucide-react';
+import { Search, Filter, Heart, Package } from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
-interface Item {
-  name: string;
-  image_url: string;
-}
-
-interface InventoryEntry {
-  id: string;
-  items: Item;
-}
+// Temporary mock data so you can see the gorgeous grid!
+const MOCK_ITEMS = [
+  { id: 1, name: "Starlight Teacup", set: "Dreamy Starlight", rarity: "SR", isWishlist: true, image: "🍵" },
+  { id: 2, name: "Fluffy Cloud Bed", set: "Sky Haven", rarity: "S", isWishlist: false, image: "☁️" },
+  { id: 3, name: "Moonlit Ribbon", set: "Dreamy Starlight", rarity: "R", isWishlist: true, image: "🎀" },
+  { id: 4, name: "Pastel Sparkles", set: "Everyday Magic", rarity: "N", isWishlist: false, image: "✨" },
+  { id: 5, name: "Sleepy Star Plush", set: "Sky Haven", rarity: "S", isWishlist: true, image: "⭐" },
+  { id: 6, name: "Cozy Nightcap", set: "Everyday Magic", rarity: "N", isWishlist: false, image: "🌙" },
+];
 
 export default function WardrobePage() {
-  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [inventory, setInventory] = useState<InventoryEntry[]>([]);
-  const [fetching, setFetching] = useState(true);
+  const { resolvedTheme } = useTheme();
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Define fetch first
-  const fetchInventory = useCallback(async () => {
-    if (!user) return;
-    try {
-      const { data } = await supabase.from('inventory').select('*, items(*)').eq('trader_id', user.id);
-      if (data) setInventory(data as unknown as InventoryEntry[]);
-    } finally {
-      setFetching(false);
+  // Helper to get the correct glow/border based on rarity
+  const getRarityStyles = (rarity: string) => {
+    if (resolvedTheme === 'light') return ''; // Light mode uses standard glass borders
+    
+    // Dark mode gets the magical glowing halos!
+    switch (rarity) {
+      case 'SR': return 'shadow-[0_0_24px_rgba(232,107,179,0.4)] border-[#FF6BB3]/50'; // Galaxy Pink
+      case 'S': return 'shadow-[0_0_16px_rgba(155,89,182,0.3)] border-[#C175E6]/50'; // Comet Purple
+      case 'R': return 'shadow-[0_0_12px_rgba(255,215,0,0.2)] border-[#FFE44D]/50'; // Star Gold
+      case 'N': return 'shadow-[0_0_8px_rgba(192,192,192,0.1)] border-[#A0A0A0]/30'; // Moon Silver
+      default: return '';
     }
-  }, [user]);
+  };
 
-  useEffect(() => {
-    if (user) {
-      fetchInventory();
-    } else if (!authLoading) {
-      setFetching(false);
+  const getRarityColor = (rarity: string) => {
+    switch (rarity) {
+      case 'SR': return 'text-[#E84393] dark:text-[#FF6BB3]';
+      case 'S': return 'text-[#9B59B6] dark:text-[#C175E6]';
+      case 'R': return 'text-[#F39C12] dark:text-[#FFE44D]';
+      case 'N': return 'text-[var(--text-muted)]';
+      default: return '';
     }
-  }, [user, authLoading, fetchInventory]);
-
-  if (authLoading || fetching) return (
-    <div className="min-h-screen bg-[#FDF8F7] dark:bg-[#1A0B2E] flex items-center justify-center">
-      <Sparkles className="animate-spin text-[#7ED7C1]" />
-    </div>
-  );
-
-  if (!user) return (
-    <div className="min-h-screen bg-[#FDF8F7] dark:bg-[#1A0B2E] flex flex-col items-center justify-center p-10 text-center">
-      <Package size={48} className="text-gray-200 dark:text-[#2D1B4E] mb-4" />
-      <h2 className="text-xl font-black dark:text-[#FFF9E3] mb-6 text-center">Wardrobe Locked</h2>
-      <button onClick={() => navigate('/login')} className="bg-[#2E2A28] dark:bg-[#A389F4] text-white px-8 py-4 rounded-2xl font-black uppercase text-xs flex items-center gap-2">
-        <LogIn size={16} /> Sign In
-      </button>
-    </div>
-  );
+  };
 
   return (
-    <div className="min-h-screen bg-[#FDF8F7] dark:bg-[#1A0B2E] pb-32">
-      <header className="p-6 bg-white dark:bg-[#2D1B4E] rounded-b-[40px] shadow-sm sticky top-0 z-30 transition-colors">
-        <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => window.history.back()} className="p-2 bg-[#F8F9FB] dark:bg-[#1A0B2E] rounded-full text-gray-400"><ChevronLeft size={20} /></button>
-          <h1 className="text-xl font-black text-[#2E2A28] dark:text-[#FFF9E3]">My Wardrobe</h1>
-        </div>
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
-          <input type="text" placeholder="Search your items..." className="w-full pl-12 pr-4 py-4 bg-[#F8F9FB] dark:bg-[#1A0B2E] rounded-2xl text-sm font-bold border-none dark:text-[#E0D7FF]" />
+    <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500 relative">
+      
+      {/* Search and Filter Header */}
+      <header className="mb-6 sticky top-4 z-30">
+        <div className="glass-panel flex items-center p-3 gap-3 shadow-lg shadow-[var(--shadow-card)]">
+          <Search size={20} className="text-[var(--text-muted)] ml-2 shrink-0" />
+          <input 
+            type="text"
+            placeholder="Search your orbit..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-transparent border-none outline-none flex-1 font-bold text-sm placeholder:text-[var(--text-muted)] w-full"
+          />
+          <button className="p-2 bg-[var(--bg-app)]/50 rounded-xl text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-colors shrink-0">
+            <Filter size={18} />
+          </button>
         </div>
       </header>
 
-      <main className="px-6 mt-6">
-        {inventory.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4">
-            {inventory.map((entry) => (
-              <div key={entry.id} className="bg-white dark:bg-[#2D1B4E] p-3 rounded-[32px] border border-[#F0E6E4] dark:border-[#483475] shadow-sm text-center">
-                <div className="aspect-square bg-[#F8F9FB] dark:bg-[#1A0B2E] rounded-2xl mb-3 flex items-center justify-center">
-                  <img src={entry.items?.image_url} className="w-full h-full object-contain p-2" alt={entry.items?.name} />
-                </div>
-                <h3 className="text-[11px] font-bold text-[#2E2A28] dark:text-[#E0D7FF] truncate">{entry.items?.name}</h3>
+      {/* Wardrobe Grid */}
+      <main>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="font-black uppercase tracking-widest text-sm flex items-center gap-2 text-[var(--text-muted)]">
+            <Package size={16} /> My Items
+          </h2>
+          <span className="text-[10px] font-bold bg-[var(--accent)]/10 text-[var(--accent)] px-2 py-1 rounded-full">
+            {MOCK_ITEMS.length} Total
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 relative z-10">
+          {MOCK_ITEMS.map((item) => (
+            <div 
+              key={item.id} 
+              className={`glass-panel p-4 flex flex-col items-center text-center relative group hover:-translate-y-1 transition-all duration-300 ${getRarityStyles(item.rarity)}`}
+            >
+              {/* Rarity Badge */}
+              <div className={`absolute top-3 left-3 text-[10px] font-black uppercase tracking-widest ${getRarityColor(item.rarity)}`}>
+                {item.rarity}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20 opacity-20 dark:text-[#A389F4]">
-            <Package size={48} className="mx-auto mb-4" />
-            <p className="font-bold uppercase tracking-widest text-xs">Wardrobe is empty</p>
-          </div>
-        )}
+
+              {/* Wishlist Heart */}
+              <button className="absolute top-3 right-3 z-10 hover:scale-110 transition-transform">
+                <Heart 
+                  size={16} 
+                  className={item.isWishlist 
+                    ? "text-[var(--accent-pink)] fill-[var(--accent-pink)] drop-shadow-[0_0_8px_rgba(255,184,208,0.8)]" 
+                    : "text-[var(--border-subtle)]"
+                  } 
+                />
+              </button>
+
+              {/* Mock Image Placeholder */}
+              <div className="w-20 h-20 rounded-2xl bg-[var(--bg-app)]/50 border border-[var(--border-subtle)] flex items-center justify-center text-4xl mb-3 mt-4 group-hover:scale-105 transition-transform">
+                {item.image}
+              </div>
+
+              {/* Item Details */}
+              <h3 className="font-black text-sm leading-tight mb-1">{item.name}</h3>
+              <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--text-muted)] line-clamp-1">
+                {item.set}
+              </p>
+            </div>
+          ))}
+        </div>
       </main>
+
     </div>
   );
 }
