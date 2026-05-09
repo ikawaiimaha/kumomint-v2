@@ -15,6 +15,7 @@ import RegisterPage from './pages/RegisterPage';
 
 // Components
 import BottomNav from './components/BottomNav';
+import StarField from './components/StarField';
 import { Sparkles } from 'lucide-react';
 
 const ProtectedRoute = () => {
@@ -22,7 +23,7 @@ const ProtectedRoute = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)] transition-colors duration-500">
         <Sparkles className="animate-spin text-[var(--accent)]" />
       </div>
     );
@@ -36,7 +37,12 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider>
         <Router>
-          <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500 pb-24">
+          {/* Main App Container with dynamic theme variables */}
+          <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500 pb-24 relative">
+            
+            {/* High-Performance Animated Star Background */}
+            <StarField />
+            
             <Routes>
               {/* Public Routes */}
               <Route path="/login" element={<LoginPage />} />
