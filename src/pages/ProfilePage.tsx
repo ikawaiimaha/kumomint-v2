@@ -28,22 +28,22 @@ export default function ProfilePage() {
   }, [fetchProfile]);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app-dark)] text-[var(--text-main-dark)]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500">
       <Sparkles className="animate-spin text-[var(--accent)]" />
     </div>
   );
 
   return (
-    <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app-dark)] text-[var(--text-main-dark)] overflow-hidden">
+    <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app)] text-[var(--text-main)] overflow-hidden transition-colors duration-500">
       <header className="flex justify-between items-center mb-10 relative z-20">
         <h1 className="text-xl font-black uppercase tracking-tighter">My Orbit</h1>
         <div className="flex gap-4">
-          <button onClick={toggleTheme} className="p-2.5 rounded-2xl bg-[var(--bg-card-dark)] border border-dashed border-[var(--accent)]/30">
+          <button onClick={toggleTheme} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-dashed border-[var(--accent)]/30 transition-colors duration-500">
             {theme === 'dark' ? <Sun size={20} className="text-yellow-300" /> : <Moon size={20} />}
           </button>
-          <button onClick={() => navigate('/notifications')} className="p-2.5 rounded-2xl bg-[var(--bg-card-dark)] relative">
+          <button onClick={() => navigate('/notifications')} className="p-2.5 rounded-2xl bg-[var(--bg-card)] relative transition-colors duration-500">
             <Bell size={20} />
-            <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-pink-400 rounded-full border-2 border-[var(--bg-app-dark)]" />
+            <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-pink-400 rounded-full border-2 border-[var(--bg-app)]" />
           </button>
         </div>
       </header>
@@ -52,12 +52,10 @@ export default function ProfilePage() {
         <div className="absolute top-4 right-0 w-20 h-20 bg-[#FFF4D2] rounded-full shadow-[0_0_40px_rgba(255,244,210,0.6)] z-0" />
 
         {/* MAIN PROFILE CARD */}
-        <div className="bg-[#EAE4FF] rounded-[32px] p-6 shadow-xl shadow-[var(--accent)]/10 relative overflow-hidden text-[#1A1A1A] z-10 mt-12">
-          {/* subtle mint background blur */}
+        <div className="bg-[#EAE4FF] rounded-[32px] p-6 shadow-xl shadow-[var(--accent)]/10 relative overflow-hidden text-[#1A1A1A] z-10 mt-12 transition-colors duration-500">
           <div className="absolute -top-10 -left-10 w-32 h-32 bg-[var(--accent)] opacity-20 blur-3xl pointer-events-none" />
           
           <div className="flex items-center gap-6 mb-8 relative z-10">
-            {/* Added shrink-0 to prevent squishing */}
             <div className="w-24 h-24 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)] bg-white relative">
               <span className="text-4xl font-black text-[var(--accent)]">{username.charAt(0)}</span>
               <button onClick={() => navigate('/edit-profile')} className="absolute -bottom-2 -right-2 p-1.5 bg-[var(--accent)] text-white rounded-full">
@@ -65,16 +63,13 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            {/* Added pr-12 to keep text away from the absolute gear icon */}
             <div className="flex-1 pr-12">
               <h2 className="text-2xl font-black mb-1 break-all">{username}</h2>
-              {/* Pronouns and Buddy will go here later! */}
               <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest flex items-center gap-2">
                 <Clock size={12} /> Syncing with Stars
               </p>
             </div>
 
-            {/* GEAR ICON: Now absolutely positioned to the top right corner */}
             <button 
               onClick={() => navigate('/edit-profile')}
               className="absolute top-0 right-0 p-3 bg-white/60 text-[var(--accent)] rounded-2xl"
