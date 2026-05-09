@@ -2,24 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 1. FORCE BUBBLY FONT
-  This section ensures any Vite default fonts are overridden.
-*/
 @layer base {
   html, body {
     font-family: 'Fredoka', sans-serif !important;
   }
 }
 
-/* 2. DEEP NIGHT SKY BACKGROUND
-  These variables set the app's background to a deep indigo and purple gradient
-  like your first inspiration picture.
-*/
+/* LIGHT MODE (Daytime) */
 :root {
-  --bg-app-dark: #07071F; /* Deep indigo/black */
-  --bg-card-dark: #12122F; /* Slightly lighter purple/blue for card areas */
-  --text-main-dark: #E6E6FF; /* Soft off-white for text on dark backgrounds */
-  --accent: #A389F4; /* Existing accent color */
-  
-  /* ... keep your existing light mode variables below ... */
+  --bg-app: #FDFBFF;      /* Soft warm white */
+  --bg-card: #FFFFFF;     /* Pure white cards */
+  --text-main: #1A1A1A;   /* Dark text for readability */
+  --accent: #A389F4;      /* Signature purple */
+  --bottom-nav: rgba(255, 255, 255, 0.9);
+  --nav-icon: #A1A1AA;    /* Gray for inactive icons */
+}
+
+/* DARK MODE (Nighttime) */
+.dark {
+  --bg-app: #07071F;      /* Deep night sky */
+  --bg-card: #12122F;     /* Dark indigo cards */
+  --text-main: #E6E6FF;   /* Soft white text */
+  --accent: #A389F4;
+  --bottom-nav: rgba(18, 18, 47, 0.9);
+  --nav-icon: rgba(255, 255, 255, 0.4);
 }
