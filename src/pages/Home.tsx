@@ -1,65 +1,112 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Bell, Package, Heart, ChevronRight, Sparkles, LogIn } from 'lucide-react';
-
-const TIER_NAMES = ["Daydream", "Reverie", "Lucid", "Ethereal", "Celestial"];
+import { useNavigate } from 'react-router-dom';
+import { Package, Heart, Sparkles, ChevronRight, Star } from 'lucide-react';
 
 export default function Home() {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [xp] = useState(25); 
+  const [username, setUsername] = useState('Dreamer');
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)]"><Sparkles className="animate-spin text-[var(--accent)]" /></div>;
-
-  if (!user) return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-10 text-center">
-      <div className="w-20 h-20 glass-panel flex items-center justify-center mb-8 shadow-xl">
-        <Package size={32} className="text-[var(--accent)]" />
-      </div>
-      <h2 className="text-2xl font-black mb-2">Kumomint</h2>
-      <p className="text-xs font-bold opacity-50 mb-10">Building your collection among the stars.</p>
-      <button onClick={() => navigate('/login')} className="w-full py-4 moonie-btn text-white rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2">
-        <LogIn size={16} /> Sign In
-      </button>
-    </div>
-  );
+  // Fetch the user's display name for a warm greeting
+  useEffect(() => {
+    async function getUsername() {
+      if (!user) return;
+      const { data } = await supabase
+        .from('traders')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+      
+      if (data && data.username) {
+        setUsername(data.username);
+      }
+    }
+    getUsername();
+  }, [user]);
 
   return (
-    <div className="min-h-screen pb-32 px-6 pt-6">
-      <header className="flex justify-between items-center mb-10">
-        <h1 className="text-2xl font-black tracking-tighter">KUMOMINT</h1>
-        <button onClick={() => navigate('/notifications')} className="w-12 h-12 glass-panel flex items-center justify-center relative text-gray-400">
-          <Bell size={20} />
-          <span className="absolute top-3 right-3 w-2 h-2 bg-pink-400 rounded-full border-2 border-[var(--bg-app)]"></span>
-        </button>
+    <div className="min-h-screen pb-32 px-6 pt-12 bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500 relative overflow-hidden">
+      
+      {/* Decorative background glow */}
+      <div className="absolute top-[-5%] left-[-10%] w-64 h-64 bg-[var(--accent)] opacity-20 blur-[80px] rounded-full pointer-events-none" />
+      <div className="absolute top-[20%] right-[-10%] w-48 h-48 bg-[var(--accent-sky)] opacity-20 blur-[60px] rounded-full pointer-events-none" />
+
+      <header className="mb-10 relative z-10 flex justify-between items-end">
+        <div>
+          <h2 className="text-sm font-bold text-[var(--text-muted)] uppercase tracking-widest mb-1 flex items-center gap-2">
+            <Sparkles size={14} className="text-[var(--accent-pink)]" /> 
+            Welcome back,
+          </h2>
+          <h1 className="text-3xl font-black tracking-tight">{username}</h1>
+        </div>
+        
+        {/* Little Teacup Kumoru Greeting */}
+        <div className="w-16 h-16 animate-[float_6s_ease-in-out_infinite] drop-shadow-lg">
+          <img src="/kumo-sad.png" alt="Kumoru" className="w-full h-full object-contain drop-shadow-[0_4px_8px_rgba(163,137,244,0.3)]" />
+          {/* Note: Swap 'kumo-sad.png' with a happy version if you have one! */}
+        </div>
       </header>
 
-      {/* Hero Card */}
-      <div className="glass-panel p-8 relative overflow-hidden mb-8 border-none shadow-2xl">
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-[var(--accent)] opacity-20 blur-3xl"></div>
-        <h2 className="text-xs font-black uppercase tracking-[0.2em] opacity-40 mb-2">Current Tier</h2>
-        <p className="text-3xl font-black mb-6">{TIER_NAMES[0]}</p>
-        <div className="h-2 w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full bg-[var(--accent)] transition-all duration-1000 shadow-[0_0_10px_var(--accent-glow)]" style={{ width: `${xp}%` }} />
+      <main className="space-y-8 relative z-10">
+        
+        {/* TIER STATUS - Upgraded to Glassmorphism */}
+        <div className="glass-panel p-8 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)]/10 rounded-bl-[100px] transition-transform group-hover:scale-110" />
+          
+          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">Current Tier</p>
+          <div className="flex items-center gap-3 mb-6">
+            <h2 className="text-4xl font-black text-[var(--accent)] drop-shadow-sm">Daydream</h2>
+            <Star className="text-[var(--accent-pink)] fill-[var(--accent-pink)] animate-pulse" size={24} />
+          </div>
+          
+          <div className="w-24 h-2 bg-[var(--bg-app)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
+            <div className="w-1/3 h-full bg-[var(--accent)] rounded-full shadow-[0_0_8px_var(--accent)]" />
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-10">
-        <button onClick={() => navigate('/wardrobe')} className="glass-panel p-6 flex flex-col items-center gap-4 active:scale-95 transition-transform">
-          <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-2xl"><Package size={24} className="text-blue-400" /></div>
-          <span className="font-black text-[10px] uppercase tracking-widest">Wardrobe</span>
-        </button>
-        <button onClick={() => navigate('/wishlist')} className="glass-panel p-6 flex flex-col items-center gap-4 active:scale-95 transition-transform">
-          <div className="p-3 bg-pink-50 dark:bg-pink-900/30 rounded-2xl"><Heart size={24} className="text-pink-400" /></div>
-          <span className="font-black text-[10px] uppercase tracking-widest">Wishlist</span>
-        </button>
-      </div>
+        {/* QUICK ACTIONS */}
+        <div className="grid grid-cols-2 gap-4">
+          <button 
+            onClick={() => navigate('/wardrobe')}
+            className="glass-panel p-6 flex flex-col items-center justify-center gap-4 hover:-translate-y-1 transition-all group"
+          >
+            <div className="w-14 h-14 rounded-full bg-[var(--accent-sky)]/20 flex items-center justify-center border border-[var(--accent-sky)]/30 group-hover:scale-110 transition-transform">
+              <Package size={24} className="text-[var(--accent-sky)]" />
+            </div>
+            <span className="font-black text-sm uppercase tracking-wider text-[var(--text-main)]">Wardrobe</span>
+          </button>
 
-      <div className="flex justify-between items-center px-1">
-        <h3 className="font-black text-lg">In Orbit Now</h3>
-        <ChevronRight size={20} className="opacity-20" />
-      </div>
+          <button 
+            onClick={() => navigate('/catalog')}
+            className="glass-panel p-6 flex flex-col items-center justify-center gap-4 hover:-translate-y-1 transition-all group"
+          >
+            <div className="w-14 h-14 rounded-full bg-[var(--accent-pink)]/20 flex items-center justify-center border border-[var(--accent-pink)]/30 group-hover:scale-110 transition-transform">
+              <Heart size={24} className="text-[var(--accent-pink)] fill-[var(--accent-pink)]/20" />
+            </div>
+            <span className="font-black text-sm uppercase tracking-wider text-[var(--text-main)]">Wishlist</span>
+          </button>
+        </div>
+
+        {/* IN ORBIT NOW SECTION */}
+        <div className="pt-4">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="font-black text-lg">In Orbit Now</h3>
+            <button className="p-2 bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
+              <ChevronRight size={18} />
+            </button>
+          </div>
+          
+          <div className="glass-panel p-8 flex flex-col items-center justify-center border-dashed">
+            <Sparkles size={32} className="text-[var(--border-subtle)] mb-3" />
+            <p className="text-sm font-bold text-[var(--text-muted)] text-center">
+              The galaxy is quiet today.<br/>Go mint some new items!
+            </p>
+          </div>
+        </div>
+
+      </main>
     </div>
   );
 }
