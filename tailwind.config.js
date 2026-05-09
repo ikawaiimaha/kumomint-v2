@@ -11,7 +11,7 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        // Defines 'sans' to use Fredoka first, then fall back
+        // Enforces Fredoka across the entire app
         sans: ['Fredoka', 'sans-serif'],
       },
     },
