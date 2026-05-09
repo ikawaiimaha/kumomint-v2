@@ -22,7 +22,7 @@ const ProtectedRoute = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app-dark)]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500">
         <Sparkles className="animate-spin text-[var(--accent)]" />
       </div>
     );
@@ -36,7 +36,7 @@ export default function App() {
     <AuthProvider>
       <ThemeProvider>
         <Router>
-          <div className="min-h-screen bg-[var(--bg-app-dark)] text-[var(--text-main-dark)] transition-colors duration-500 pb-24">
+          <div className="min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500 pb-24">
             <Routes>
               {/* Public Routes */}
               <Route path="/login" element={<LoginPage />} />
