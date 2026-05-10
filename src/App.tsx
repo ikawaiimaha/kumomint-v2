@@ -12,6 +12,7 @@ import EditProfile from './pages/EditProfile';
 import CreatorDashboard from './pages/CreatorDashboard';
 import TradeInboxPage from './pages/TradeInboxPage';
 import TradeProposalPage from './pages/TradeProposalPage';
+import PublicProfilePage from './pages/PublicProfilePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 
@@ -58,9 +59,12 @@ export default function App() {
                 <Route path="/edit-profile" element={<EditProfile />} />
                 <Route path="/creator" element={<CreatorDashboard />} />
                 
-                {/* New Trading Routes */}
+                {/* Trading Routes */}
                 <Route path="/inbox" element={<TradeInboxPage />} />
                 <Route path="/propose" element={<TradeProposalPage />} />
+                
+                {/* Social Routes */}
+                <Route path="/user/:id" element={<PublicProfilePage />} />
               </Route>
             </Routes>
 
