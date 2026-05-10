@@ -63,13 +63,11 @@ export default function ProfilePage() {
       }
 
       // 3. Fetch Real Stats
-      // Count items in inventory
       const { count: invCount } = await supabase
         .from('user_items')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id);
 
-      // Count completed trades
       const { count: tradeCount } = await supabase
         .from('trades')
         .select('*', { count: 'exact', head: true })
@@ -141,16 +139,28 @@ export default function ProfilePage() {
         {/* MAIN PROFILE CARD */}
         <div className="glass-panel p-6 relative overflow-hidden z-10 mt-12">
           
+          {/* Settings gear moved to absolute top-right */}
+          <button 
+            onClick={() => navigate('/edit-profile')}
+            className="absolute top-4 right-4 p-3 bg-[var(--bg-app)]/50 text-[var(--accent)] rounded-2xl hover:bg-[var(--accent)]/10 transition-colors z-20"
+          >
+            <Settings size={20} />
+          </button>
+
           <div className="flex items-center gap-6 mb-6 relative z-10">
-            <div className="w-24 h-24 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center bg-[var(--bg-card)] relative">
+            {/* Avatar */}
+            <div className="w-24 h-24 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center bg-[var(--bg-card)] relative shadow-[0_0_15px_rgba(163,137,244,0.3)]">
               <span className="text-4xl font-black text-[var(--accent)]">{profile.username.charAt(0)}</span>
               <button onClick={() => navigate('/edit-profile')} className="absolute -bottom-2 -right-2 p-1.5 bg-[var(--accent)] text-white rounded-full hover:scale-110 transition-transform shadow-md">
                 <Edit3 size={14} />
               </button>
             </div>
 
-            <div className="flex-1 pr-12">
-              <h2 className="text-2xl font-black mb-1 break-all">{profile.username}</h2>
+            {/* Username Section with Fixes */}
+            <div className="flex-1 min-w-0 pr-8"> 
+              <h2 className="text-2xl font-black mb-1 truncate text-[var(--text-main)]">
+                {profile.username}
+              </h2>
               {profile.pronouns && (
                 <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 mb-2 inline-block uppercase">
                   {profile.pronouns}
@@ -160,10 +170,6 @@ export default function ProfilePage() {
                 <Clock size={12} /> Syncing with Stars
               </p>
             </div>
-
-            <button onClick={() => navigate('/edit-profile')} className="absolute top-0 right-0 p-3 bg-[var(--bg-app)]/50 text-[var(--accent)] rounded-2xl">
-              <Settings size={20} />
-            </button>
           </div>
 
           {profile.sanrioBuddy && (
@@ -173,9 +179,10 @@ export default function ProfilePage() {
             </div>
           )}
 
+          {/* DYNAMIC STATS GRID */}
           <div className="grid grid-cols-2 gap-3 border-t border-[var(--border-subtle)] pt-6 mb-6">
             <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
-              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Items</span>
+              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Mints</span>
               <span className="text-lg font-black">{stats.inventoryCount}</span>
             </div>
             
