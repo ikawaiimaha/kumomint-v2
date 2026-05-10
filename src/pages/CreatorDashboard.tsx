@@ -1,269 +1,222 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Camera, Sparkles, Wand2, ChevronLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-// 1. Zod Validation Schema
-const mintSchema = z.object({
-  name: z.string().min(2, "Identity required"),
-  collection_id: z.string().min(1, "Select a sector"),
-  rarity: z.enum(['Common', 'Rare', 'Ultra', 'Celestial']),
-  image: z.any().refine((files) => files?.length > 0, "Visual signal required"),
-});
-
-type MintFormData = z.infer<typeof mintSchema>;
+import { 
+  Plus, Package, Sparkles, ChevronLeft, 
+  Image as ImageIcon, Fingerprint, Star, CheckCircle2 
+} from 'lucide-react';
 
 export default function CreatorDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Form State
+  const [name, setName] = useState('');
+  const [rarity, setRarity] = useState('N');
+  const [imageUrl, setImageUrl] = useState('');
+  const [collectionId, setCollectionId] = useState('');
   
-  // Database State
-  const [collections, setCollections] = useState<{id: string, name: string}[]>([]);
-  
-  // UI States
+  // UI State
   const [isMinting, setIsMinting] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [success, setSuccess] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [mintedItem, setMintedItem] = useState<{name: string, rarity: string} | null>(null);
+  const [collections, setCollections] = useState<{id: string, name: string}[]>([]);
 
-  // Form Setup
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<MintFormData>({
-    resolver: zodResolver(mintSchema),
-    defaultValues: { rarity: 'Common', collection_id: '' }
-  });
-
-  const imageFile = watch('image');
-  const itemName = watch('name');
-
-  // Fetch Collections from Supabase
-  const fetchData = useCallback(async () => {
-    const { data } = await supabase.from('collections').select('id, name').order('name');
-    if (data) setCollections(data);
+  // Fetch available collections for the dropdown
+  useEffect(() => {
+    async function fetchCollections() {
+      const { data } = await supabase.from('collections').select('id, name');
+      if (data) setCollections(data);
+    }
+    fetchCollections();
   }, []);
 
-  useEffect(() => { 
-    fetchData(); 
-  }, [fetchData]);
+  const handleMint = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !name || !collectionId) return;
 
-  // Handle Image Preview Generation
-  useEffect(() => {
-    if (imageFile && imageFile[0]) {
-      const url = URL.createObjectURL(imageFile[0]);
-      setPreview(url);
-      return () => URL.revokeObjectURL(url);
-    } else {
-      setPreview(null);
-    }
-  }, [imageFile]);
-
-  // Form Submission Logic
-  const onSubmit = async (data: MintFormData) => {
-    if (!user) return;
-    
     setIsMinting(true);
-    setProgress(0);
-    setSuccess(false);
-
-    // Start fake progress bar for visual flair while uploading
-    const progressInterval = setInterval(() => {
-      setProgress(prev => (prev < 85 ? prev + Math.floor(Math.random() * 10) + 5 : prev));
-    }, 400);
+    setMintedItem(null);
 
     try {
-      // 1. Upload Image to Storage
-      const file = data.image[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
+      // 1. Insert the new item into the global items table
+      const { data: newItem, error: itemError } = await supabase
         .from('items')
-        .upload(filePath, file);
+        .insert([{
+          name,
+          rarity,
+          image_url: imageUrl || null,
+          collection_id: collectionId
+        }])
+        .select()
+        .single();
 
-      if (uploadError) throw uploadError;
+      if (itemError) throw itemError;
 
-      // 2. Get Public URL
-      const { data: urlData } = supabase.storage.from('items').getPublicUrl(filePath);
+      // 2. AUTO-GRANT: Add the item to the current user's inventory
+      const { error: invError } = await supabase
+        .from('user_items')
+        .insert([{
+          user_id: user.id,
+          item_id: newItem.id
+        }]);
 
-      // 3. Insert into Database
-      const { error: dbError } = await supabase.from('items').insert([{
-        name: data.name,
-        collection_id: data.collection_id,
-        rarity: data.rarity,
-        image_url: urlData.publicUrl,
-        creator_id: user.id
-      }]);
+      if (invError) throw invError;
 
-      if (dbError) throw dbError;
-
-      // Success!
-      clearInterval(progressInterval);
-      setProgress(100);
-      setTimeout(() => {
-        setIsMinting(false);
-        setSuccess(true);
-      }, 500);
-
-    } catch (err: any) {
-      clearInterval(progressInterval);
+      // Success! Clear form and show success state
+      setMintedItem({ name: newItem.name, rarity: newItem.rarity });
+      setName('');
+      setImageUrl('');
+      
+    } catch (error) {
+      console.error("Minting failed:", error);
+      alert("Failed to mint item. Check your database permissions.");
+    } finally {
       setIsMinting(false);
-      alert(err.message || "Failed to mint item.");
     }
   };
 
-  const resetStudio = () => {
-    reset();
-    setSuccess(false);
-    setProgress(0);
-    setPreview(null);
+  // Visual Rarity Helpers
+  const getRarityColor = (r: string) => {
+    switch (r) {
+      case 'SSR': return 'text-[#E84393]';
+      case 'SR': return 'text-[#9B59B6]';
+      case 'R': return 'text-[#F39C12]';
+      default: return 'text-[var(--text-muted)]';
+    }
   };
 
   return (
     <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500">
       
-      <header className="flex items-center gap-4 mb-8">
+      <header className="flex items-center justify-between mb-8 relative z-10">
         <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors">
           <ChevronLeft size={20} className="text-[var(--text-muted)]" />
         </button>
-        <h1 className="text-xl font-black uppercase tracking-tighter">Creator Studio</h1>
+        <h1 className="text-xl font-black uppercase tracking-tighter">Forge Item</h1>
+        <div className="w-10" />
       </header>
 
-      <main className="space-y-6 relative">
+      <main className="max-w-md mx-auto">
         
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* SUCCESS TOAST */}
+        {mintedItem && (
+          <div className="glass-panel p-4 mb-6 border-[var(--accent-green)]/30 bg-[var(--accent-green)]/5 animate-in fade-in slide-in-from-top-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-[var(--accent-green)]/20 flex items-center justify-center text-[var(--accent-green)]">
+                <CheckCircle2 size={20} />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest text-[var(--accent-green)]">Minted & Claimed!</p>
+                <p className="text-[10px] font-bold opacity-80">{mintedItem.name} ({mintedItem.rarity}) is now in your wardrobe.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={handleMint} className="space-y-6">
           
-          {/* VISUAL SIGNAL BOX */}
-          <div className="relative">
-            <div className="flex justify-between items-end mb-2 ml-2">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Visual Signal</p>
-              {errors.image && <p className="text-[10px] text-red-500 font-bold">{errors.image.message as string}</p>}
-            </div>
-            
-            <div className={`glass-panel aspect-square flex flex-col items-center justify-center border-2 border-dashed transition-all duration-500 relative overflow-hidden ${
-              isMinting ? 'border-[var(--accent)] shadow-[0_0_40px_rgba(163,137,244,0.3)] bg-[var(--accent)]/5' : 'border-[var(--border-subtle)] hover:border-[var(--accent)]/50'
-            }`}>
-              
-              {/* Invisible File Input Overlay */}
-              {!isMinting && !success && (
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  {...register("image")} 
-                  className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer" 
-                />
-              )}
-              
-              {success ? (
-                <div className="flex flex-col items-center animate-in zoom-in duration-500 z-10">
-                  <div className="w-24 h-24 bg-[var(--accent-green)]/20 rounded-full flex items-center justify-center mb-4 border border-[var(--accent-green)]/50">
-                    <CheckCircle2 size={40} className="text-[var(--accent-green)]" />
-                  </div>
-                  <p className="font-black text-sm uppercase tracking-widest text-[var(--accent-green)]">Item Minted!</p>
-                </div>
-              ) : isMinting ? (
-                <div className="flex flex-col items-center z-10">
-                  <Sparkles size={40} className="text-[var(--accent)] animate-pulse mb-4" />
-                  <p className="font-black text-[10px] uppercase tracking-widest text-[var(--accent)] animate-pulse">Syncing with Stars...</p>
-                </div>
-              ) : preview ? (
-                <img src={preview} className="w-full h-full object-cover z-10" alt="Preview" />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-[var(--bg-card)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--accent)] hover:scale-110 transition-transform shadow-lg z-10">
-                  <Camera size={24} />
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className={`space-y-6 transition-opacity duration-300 ${isMinting || success ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-            
-            {/* NAME INPUT */}
-            <div>
+          {/* Item Name */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-2">Item Name</label>
+            <div className="glass-panel p-1 flex items-center">
+              <div className="p-3 text-[var(--accent)]"><Fingerprint size={20} /></div>
               <input 
+                required
                 type="text" 
-                {...register("name")}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="Name your creation..."
-                className="w-full bg-transparent border-none outline-none font-black text-2xl placeholder:text-[var(--border-subtle)] px-2"
+                className="bg-transparent border-none outline-none flex-1 font-bold text-sm p-2 w-full text-[var(--text-main)]"
               />
-              {errors.name && <p className="text-[10px] text-red-500 font-bold ml-2 mt-1">{errors.name.message as string}</p>}
-            </div>
-
-            {/* DROPDOWNS */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="glass-panel p-2">
-                <label className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] block ml-2 mb-1">Collection</label>
-                <select 
-                  {...register("collection_id")}
-                  className="w-full bg-transparent font-bold text-sm outline-none appearance-none px-2 pb-1 text-[var(--text-main)]"
-                >
-                  <option value="" disabled>Select Set...</option>
-                  {collections.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-
-              <div className="glass-panel p-2">
-                <label className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] block ml-2 mb-1">Rarity</label>
-                <select 
-                  {...register("rarity")}
-                  className="w-full bg-transparent font-bold text-sm outline-none appearance-none px-2 pb-1 text-[var(--text-main)]"
-                >
-                  <option value="Common">Moon (Common)</option>
-                  <option value="Rare">Star (Rare)</option>
-                  <option value="Ultra">Comet (Ultra)</option>
-                  <option value="Celestial">Galaxy (Celestial)</option>
-                </select>
-              </div>
             </div>
           </div>
 
-          {/* WARNING BANNER */}
-          <div className={`bg-yellow-400/10 p-4 rounded-3xl flex gap-3 border border-yellow-400/20 transition-opacity duration-300 ${isMinting || success ? 'opacity-50' : 'opacity-100'}`}>
-            <AlertCircle size={18} className="text-yellow-600 shrink-0" />
-            <p className="text-[10px] font-bold text-yellow-700/80 dark:text-yellow-400/80">Permanent minting in progress. Once ignited, this signal cannot be un-sent.</p>
+          {/* Rarity Selector */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-2">Rarity Tier</label>
+            <div className="grid grid-cols-4 gap-2">
+              {['N', 'R', 'SR', 'SSR'].map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRarity(r)}
+                  className={`py-3 rounded-2xl border font-black text-xs transition-all ${
+                    rarity === r 
+                    ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-lg' 
+                    : 'bg-[var(--bg-card)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--bg-secondary)]'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* INVISIBLE SUBMIT (Triggered by the absolute bottom button) */}
-          <button id="hidden-submit" type="submit" className="hidden" />
+          {/* Image URL */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-2">Asset URL</label>
+            <div className="glass-panel p-1 flex items-center">
+              <div className="p-3 text-[var(--text-muted)]"><ImageIcon size={20} /></div>
+              <input 
+                type="url" 
+                value={imageUrl}
+                onChange={(e) => setImageUrl(e.target.value)}
+                placeholder="https://..."
+                className="bg-transparent border-none outline-none flex-1 font-bold text-[10px] p-2 w-full text-[var(--text-main)]"
+              />
+            </div>
+          </div>
+
+          {/* Collection Select */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-2">Collection</label>
+            <div className="glass-panel p-1 flex items-center">
+              <div className="p-3 text-[var(--text-muted)]"><Package size={20} /></div>
+              <select 
+                required
+                value={collectionId}
+                onChange={(e) => setCollectionId(e.target.value)}
+                className="bg-transparent border-none outline-none flex-1 font-bold text-sm p-3 w-full text-[var(--text-main)] appearance-none"
+              >
+                <option value="" disabled className="bg-[var(--bg-card)]">Select Collection</option>
+                {collections.map(c => (
+                  <option key={c.id} value={c.id} className="bg-[var(--bg-card)]">{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* MINT BUTTON */}
+          <button 
+            type="submit"
+            disabled={isMinting}
+            className="w-full py-5 bg-[var(--accent)] text-white rounded-3xl font-black uppercase tracking-widest text-xs shadow-xl shadow-[var(--accent)]/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+          >
+            {isMinting ? (
+              <Sparkles className="animate-spin" size={18} />
+            ) : (
+              <Plus size={18} />
+            )}
+            {isMinting ? 'Forging in Stars...' : 'Mint & Claim Item'}
+          </button>
+
         </form>
 
-        {/* MINT ACTION BUTTON (Fixed at bottom) */}
-        <div className="fixed bottom-28 left-6 right-6 z-40">
-          {success ? (
-            <button 
-              onClick={resetStudio}
-              className="w-full py-4 bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-main)] rounded-2xl font-black text-xs uppercase shadow-lg flex justify-center items-center gap-2 hover:bg-[var(--bg-secondary)] transition-colors"
-            >
-              Mint Another Item
-            </button>
-          ) : (
-            <button 
-              onClick={() => document.getElementById('hidden-submit')?.click()}
-              disabled={isMinting || !itemName || !imageFile || imageFile.length === 0}
-              className={`w-full py-4 rounded-2xl font-black text-xs uppercase shadow-xl flex justify-center items-center gap-2 transition-all duration-300 relative overflow-hidden ${
-                itemName && imageFile && imageFile.length > 0 
-                  ? 'bg-[var(--accent)] text-white hover:opacity-90' 
-                  : 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-subtle)]'
-              }`}
-            >
-              {isMinting ? (
-                <>
-                  <div 
-                    className="absolute inset-0 bg-white/20 transition-all duration-300 ease-out"
-                    style={{ width: `${progress}%` }}
-                  />
-                  <span className="relative z-10 drop-shadow-md">{progress}% Orbiting...</span>
-                </>
-              ) : (
-                <>
-                  <Wand2 size={16} /> Ignite Signal
-                </>
-              )}
-            </button>
-          )}
+        {/* Live Preview */}
+        <div className="mt-12">
+          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] text-center mb-4">Live Preview</p>
+          <div className="flex justify-center">
+            <div className="glass-panel p-4 w-40 flex flex-col items-center text-center relative border-dashed border-2">
+              <div className={`absolute top-2 left-2 text-[9px] font-black uppercase tracking-widest ${getRarityColor(rarity)}`}>
+                {rarity}
+              </div>
+              <div className="w-20 h-20 rounded-2xl bg-[var(--bg-app)]/50 border border-[var(--border-subtle)] flex items-center justify-center overflow-hidden mb-3 mt-4">
+                {imageUrl ? <img src={imageUrl} className="w-full h-full object-cover" /> : <Package size={32} className="opacity-20" />}
+              </div>
+              <h3 className="font-black text-[10px] leading-tight mb-1">{name || 'Item Name'}</h3>
+            </div>
+          </div>
         </div>
 
       </main>
