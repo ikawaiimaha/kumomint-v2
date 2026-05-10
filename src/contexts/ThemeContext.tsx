@@ -14,22 +14,26 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    // 1. Check if user has a manual preference saved
     const savedTheme = localStorage.getItem('kumomint-theme') as Theme | null;
     
     if (savedTheme) {
       setTheme(savedTheme);
     } else {
-      // 2. No preference? Use the Clock (6 PM to 6 AM is Dark)
+      // Auto-Clock logic
       const hour = new Date().getHours();
       const isNight = hour >= 18 || hour < 6;
       setTheme(isNight ? 'dark' : 'light');
     }
   }, []);
 
-  // Update the actual HTML attribute whenever theme changes
+  // Updated to use classList so it works with your CSS
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
+    const root = window.document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
   }, [theme]);
 
   const toggleTheme = () => {
