@@ -27,6 +27,7 @@ export default function ProfilePage() {
     tradeVibe: '',
     birthday: ''
   });
+  const [stats, setStats] = useState({ inventoryCount: 0, completedTrades: 0 });
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -51,26 +52,35 @@ export default function ProfilePage() {
         });
       }
 
-      // 2. Fetch Wishlist Data (Join with items table)
+      // 2. Fetch Wishlist Data
       const { data: wishData } = await supabase
         .from('wishlists')
-        .select(`
-          items (
-            id,
-            name,
-            rarity,
-            image_url
-          )
-        `)
+        .select(`items (id, name, rarity, image_url)`)
         .eq('trader_id', user.id);
 
       if (wishData) {
-        // Extract the nested item objects from the join
-        const formattedItems = wishData
-          .map(w => w.items)
-          .filter(Boolean) as unknown as WishlistItem[];
-        setWishlistItems(formattedItems);
+        setWishlistItems(wishData.map(w => w.items).filter(Boolean) as unknown as WishlistItem[]);
       }
+
+      // 3. Fetch Real Stats
+      // Count items in inventory
+      const { count: invCount } = await supabase
+        .from('user_items')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      // Count completed trades
+      const { count: tradeCount } = await supabase
+        .from('trades')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'accepted')
+        .or(`initiator_id.eq.${user.id},receiver_id.eq.${user.id}`);
+
+      setStats({
+        inventoryCount: invCount || 0,
+        completedTrades: tradeCount || 0
+      });
+
     } catch (error) {
       console.error("Error fetching profile data:", error);
     } finally {
@@ -82,7 +92,6 @@ export default function ProfilePage() {
     fetchData();
   }, [fetchData]);
 
-  // Visual Helpers for HKDV Rarities
   const getRarityStyles = (rarity: string) => {
     if (resolvedTheme === 'light') return ''; 
     switch (rarity?.toUpperCase()) {
@@ -99,28 +108,27 @@ export default function ProfilePage() {
       case 'SSR': return 'text-[#E84393] dark:text-[#FF6BB3]';
       case 'SR': return 'text-[#9B59B6] dark:text-[#C175E6]';
       case 'R': return 'text-[#F39C12] dark:text-[#FFE44D]';
-      case 'N': return 'text-[var(--text-muted)]';
       default: return 'text-[var(--text-muted)]';
     }
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)]">
       <Sparkles className="animate-spin text-[var(--accent)]" />
     </div>
   );
 
   return (
-    <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app)] text-[var(--text-main)] overflow-hidden transition-colors duration-500">
+    <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500">
       
       <header className="flex justify-between items-center mb-10 relative z-20">
         <h1 className="text-xl font-black uppercase tracking-tighter">My Orbit</h1>
         <div className="flex gap-4">
-          <button onClick={toggleTheme} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-dashed border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors duration-500">
+          <button onClick={toggleTheme} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-dashed border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
             {theme === 'dark' ? <Sun size={20} className="text-yellow-300" /> : <Moon size={20} />}
           </button>
           
-          <button onClick={() => navigate('/inbox')} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] relative transition-colors duration-500">
+          <button onClick={() => navigate('/inbox')} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] relative">
             <Bell size={20} />
             <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-[var(--accent-pink)] rounded-full border-2 border-[var(--bg-app)]" />
           </button>
@@ -134,7 +142,7 @@ export default function ProfilePage() {
         <div className="glass-panel p-6 relative overflow-hidden z-10 mt-12">
           
           <div className="flex items-center gap-6 mb-6 relative z-10">
-            <div className="w-24 h-24 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)] bg-[var(--bg-card)] relative">
+            <div className="w-24 h-24 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center bg-[var(--bg-card)] relative">
               <span className="text-4xl font-black text-[var(--accent)]">{profile.username.charAt(0)}</span>
               <button onClick={() => navigate('/edit-profile')} className="absolute -bottom-2 -right-2 p-1.5 bg-[var(--accent)] text-white rounded-full hover:scale-110 transition-transform shadow-md">
                 <Edit3 size={14} />
@@ -143,50 +151,45 @@ export default function ProfilePage() {
 
             <div className="flex-1 pr-12">
               <h2 className="text-2xl font-black mb-1 break-all">{profile.username}</h2>
-              
               {profile.pronouns && (
-                <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 mb-2 inline-block uppercase tracking-wider">
+                <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 mb-2 inline-block uppercase">
                   {profile.pronouns}
                 </span>
               )}
-              
               <p className="text-[10px] font-bold opacity-60 uppercase tracking-widest flex items-center gap-2 mt-1">
                 <Clock size={12} /> Syncing with Stars
               </p>
             </div>
 
-            <button 
-              onClick={() => navigate('/edit-profile')}
-              className="absolute top-0 right-0 p-3 bg-[var(--bg-app)]/50 text-[var(--accent)] rounded-2xl hover:bg-[var(--accent)]/10 transition-colors"
-            >
+            <button onClick={() => navigate('/edit-profile')} className="absolute top-0 right-0 p-3 bg-[var(--bg-app)]/50 text-[var(--accent)] rounded-2xl">
               <Settings size={20} />
             </button>
           </div>
 
           {profile.sanrioBuddy && (
-            <div className="mb-6 flex items-center gap-2 text-xs font-bold bg-[var(--bg-app)]/50 px-4 py-2.5 rounded-2xl border border-[var(--border-subtle)] w-fit text-[var(--text-main)]">
+            <div className="mb-6 flex items-center gap-2 text-xs font-bold bg-[var(--bg-app)]/50 px-4 py-2.5 rounded-2xl border border-[var(--border-subtle)] w-fit">
               <Heart size={14} className="text-[var(--accent-pink)] fill-[var(--accent-pink)]" />
               Buddy: <span className="text-[var(--accent)]">{profile.sanrioBuddy}</span>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-3 border-t border-[var(--border-subtle)] pt-6 mb-6">
-            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)] hover:bg-[var(--bg-app)] transition-colors">
-              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Mints</span>
-              <span className="text-lg font-black">128</span>
+            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
+              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Items</span>
+              <span className="text-lg font-black">{stats.inventoryCount}</span>
             </div>
             
-            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)] hover:bg-[var(--bg-app)] transition-colors">
+            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
               <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Trades</span>
-              <span className="text-lg font-black">14</span>
+              <span className="text-lg font-black">{stats.completedTrades}</span>
             </div>
 
-            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)] hover:bg-[var(--bg-app)] transition-colors">
+            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
               <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Trade Vibe</span>
               <span className="text-sm font-black text-[var(--accent)]">{profile.tradeVibe || 'Mystery'}</span>
             </div>
 
-            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)] hover:bg-[var(--bg-app)] transition-colors">
+            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
               <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Birthday</span>
               <span className="text-sm font-black flex items-center gap-1.5">
                 <Calendar size={14} className="text-[var(--accent-pink)]"/> 
@@ -197,7 +200,7 @@ export default function ProfilePage() {
 
           <button 
             onClick={() => { signOut(); navigate('/login'); }} 
-            className="w-full flex justify-between items-center p-5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl font-black text-xs uppercase hover:bg-red-500/20 transition-colors"
+            className="w-full flex justify-between items-center p-5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl font-black text-xs uppercase"
           >
             <div className="flex items-center gap-3">
               <LogOut size={18} /> Logout
@@ -208,7 +211,7 @@ export default function ProfilePage() {
 
         {/* 3-HEART WISHLIST SECTION */}
         <div className="relative z-10 pt-4">
-          <h3 className="font-black uppercase tracking-widest text-xs flex items-center gap-2 text-[var(--text-main)] mb-4 pl-2">
+          <h3 className="font-black uppercase tracking-widest text-xs flex items-center gap-2 mb-4 pl-2">
             <Heart size={14} className="text-[var(--accent-pink)] fill-[var(--accent-pink)]" /> My Top Wishlist
           </h3>
           
@@ -224,31 +227,16 @@ export default function ProfilePage() {
                     )}
                   </div>
                   <span className={`text-[8px] font-black uppercase ${getRarityColor(item.rarity)}`}>{item.rarity || 'N'}</span>
-                  <span className="text-[8px] font-bold line-clamp-1 text-[var(--text-main)] leading-tight w-full truncate px-1">{item.name}</span>
+                  <span className="text-[8px] font-bold line-clamp-1 text-[var(--text-main)] w-full truncate px-1">{item.name}</span>
                 </div>
               ))}
             </div>
           ) : (
              <div className="glass-panel py-6 flex flex-col items-center justify-center border-dashed">
                 <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">No items wished for yet</p>
-                <button onClick={() => navigate('/catalog')} className="text-[10px] font-bold text-[var(--accent)] hover:underline">
-                  Browse Catalog
-                </button>
+                <button onClick={() => navigate('/catalog')} className="text-[10px] font-bold text-[var(--accent)] hover:underline">Browse Catalog</button>
              </div>
           )}
-        </div>
-
-        {/* RECENT FINDS SECTION */}
-        <div className="relative z-10 pt-2">
-           <div className="flex justify-between items-center mb-4 text-[var(--text-muted)] px-2">
-             <h3 className="font-black text-sm uppercase">Recent Finds</h3>
-             <Package size={16} />
-           </div>
-           
-           <div className="glass-panel py-8 flex flex-col items-center justify-center border-dashed">
-              <img src="/kumo-sad.png" alt="Sad Kumoru" className="w-24 h-24 mb-4 drop-shadow-lg opacity-80 grayscale" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">No items in orbit</p>
-           </div>
         </div>
       </main>
     </div>
