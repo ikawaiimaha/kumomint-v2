@@ -1,53 +1,52 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'light' | 'dark' | 'auto';
+type Theme = 'light' | 'dark';
 
-const ThemeContext = createContext<{
+interface ThemeContextType {
   theme: Theme;
-  resolvedTheme: 'light' | 'dark';
   toggleTheme: () => void;
-}>({ theme: 'auto', resolvedTheme: 'light', toggleTheme: () => {} });
+  resolvedTheme: Theme;
+}
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('auto');
+const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-  // Logic: System Preference -> Time-Based Fallback
-  const getResolvedTheme = (): 'light' | 'dark' => {
-    if (theme !== 'auto') return theme;
-
-    // 1. Respect System Preferences first
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      return 'light';
-    }
-
-    // 2. Fallback to Time-Based (6 AM - 6 PM is Light Mode)
-    const hour = new Date().getHours();
-    return hour >= 6 && hour < 18 ? 'light' : 'dark';
-  };
-
-  const resolvedTheme = getResolvedTheme();
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    // This adds the 'dark' class to the HTML root, which triggers Tailwind's dark mode
-    if (resolvedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
+    // 1. Check if user has a manual preference saved
+    const savedTheme = localStorage.getItem('kumomint-theme') as Theme | null;
+    
+    if (savedTheme) {
+      setTheme(savedTheme);
     } else {
-      document.documentElement.classList.remove('dark');
+      // 2. No preference? Use the Clock (6 PM to 6 AM is Dark)
+      const hour = new Date().getHours();
+      const isNight = hour >= 18 || hour < 6;
+      setTheme(isNight ? 'dark' : 'light');
     }
-  }, [resolvedTheme]);
+  }, []);
+
+  // Update the actual HTML attribute whenever theme changes
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+    localStorage.setItem('kumomint-theme', newTheme);
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, resolvedTheme: theme }}>
       {children}
     </ThemeContext.Provider>
   );
-}
+};
 
-export const useTheme = () => useContext(ThemeContext);
+export const useTheme = () => {
+  const context = useContext(ThemeContext);
+  if (!context) throw new Error('useTheme must be used within a ThemeProvider');
+  return context;
+};
