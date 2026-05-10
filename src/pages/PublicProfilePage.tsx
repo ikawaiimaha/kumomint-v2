@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, ArrowRightLeft, Package, Sparkles, Heart, Clock } from 'lucide-react';
+import { ChevronLeft, ArrowRightLeft, Package, Sparkles, Heart } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 
@@ -164,10 +164,10 @@ export default function PublicProfilePage() {
               {wishlistItems.map(item => (
                 <div key={item.id} className={`glass-panel p-2 flex flex-col items-center text-center ${getRarityStyles(item.rarity)}`}>
                   <div className="w-12 h-12 rounded-xl bg-[var(--bg-app)] border border-[var(--border-subtle)] flex items-center justify-center mb-2 mt-2 overflow-hidden">
-                    {item.image_url ? <img src={item.image_url} alt="item" className="w-full h-full object-cover" /> : <Package size={20} />}
+                    {item.image_url ? <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" /> : <Package size={20} />}
                   </div>
                   <span className={`text-[8px] font-black uppercase ${getRarityColor(item.rarity)}`}>{item.rarity || 'N'}</span>
-                  <span className="text-[8px] font-bold line-clamp-1 leading-tight">{item.name}</span>
+                  <span className="text-[8px] font-bold line-clamp-1 text-[var(--text-main)] leading-tight">{item.name}</span>
                 </div>
               ))}
             </div>
@@ -197,7 +197,7 @@ export default function PublicProfilePage() {
                     {item.items.rarity || 'N'}
                   </div>
                   <div className="w-16 h-16 rounded-2xl bg-[var(--bg-app)]/50 border border-[var(--border-subtle)] flex items-center justify-center overflow-hidden mb-2 mt-4">
-                    {item.items.image_url ? <img src={item.items.image_url} alt="item" className="w-full h-full object-cover" /> : <Package size={32} />}
+                    {item.items.image_url ? <img src={item.items.image_url} alt={item.items.name} className="w-full h-full object-cover" /> : <Package size={32} />}
                   </div>
                   <h3 className="font-black text-[10px] leading-tight mb-0.5 line-clamp-2">{item.items.name}</h3>
                 </div>
