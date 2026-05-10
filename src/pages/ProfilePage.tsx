@@ -8,12 +8,18 @@ import {
   Clock, Package, Settings, ChevronRight, Calendar, Heart 
 } from 'lucide-react';
 
+type WishlistItem = {
+  id: string;
+  name: string;
+  rarity: string;
+  image_url: string;
+};
+
 export default function ProfilePage() {
   const { user, signOut } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, resolvedTheme } = useTheme();
   const navigate = useNavigate();
   
-  // Grouped profile state for cleaner code
   const [profile, setProfile] = useState({
     username: '',
     pronouns: '',
@@ -21,31 +27,82 @@ export default function ProfilePage() {
     tradeVibe: '',
     birthday: ''
   });
+  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('traders')
-      .select('username, pronouns, sanrio_buddy, trade_vibe, birthday')
-      .eq('id', user.id)
-      .single();
-      
-    if (data) {
-      setProfile({
-        username: data.username || 'Kawaii',
-        pronouns: data.pronouns || '',
-        sanrioBuddy: data.sanrio_buddy || '',
-        tradeVibe: data.trade_vibe || '',
-        birthday: data.birthday || ''
-      });
+    
+    try {
+      // 1. Fetch Profile Data
+      const { data: profileData } = await supabase
+        .from('traders')
+        .select('username, pronouns, sanrio_buddy, trade_vibe, birthday')
+        .eq('id', user.id)
+        .single();
+        
+      if (profileData) {
+        setProfile({
+          username: profileData.username || 'Kawaii',
+          pronouns: profileData.pronouns || '',
+          sanrioBuddy: profileData.sanrio_buddy || '',
+          tradeVibe: profileData.trade_vibe || '',
+          birthday: profileData.birthday || ''
+        });
+      }
+
+      // 2. Fetch Wishlist Data (Join with items table)
+      const { data: wishData } = await supabase
+        .from('wishlists')
+        .select(`
+          items (
+            id,
+            name,
+            rarity,
+            image_url
+          )
+        `)
+        .eq('trader_id', user.id);
+
+      if (wishData) {
+        // Extract the nested item objects from the join
+        const formattedItems = wishData
+          .map(w => w.items)
+          .filter(Boolean) as unknown as WishlistItem[];
+        setWishlistItems(formattedItems);
+      }
+    } catch (error) {
+      console.error("Error fetching profile data:", error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [user]);
 
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    fetchData();
+  }, [fetchData]);
+
+  // Visual Helpers for HKDV Rarities
+  const getRarityStyles = (rarity: string) => {
+    if (resolvedTheme === 'light') return ''; 
+    switch (rarity?.toUpperCase()) {
+      case 'SSR': return 'shadow-[0_0_24px_rgba(232,107,179,0.4)] border-[#FF6BB3]/50'; 
+      case 'SR': return 'shadow-[0_0_16px_rgba(155,89,182,0.3)] border-[#C175E6]/50'; 
+      case 'R': return 'shadow-[0_0_12px_rgba(255,215,0,0.2)] border-[#FFE44D]/50'; 
+      case 'N': return 'shadow-[0_0_8px_rgba(192,192,192,0.1)] border-[#A0A0A0]/30'; 
+      default: return '';
+    }
+  };
+
+  const getRarityColor = (rarity: string) => {
+    switch (rarity?.toUpperCase()) {
+      case 'SSR': return 'text-[#E84393] dark:text-[#FF6BB3]';
+      case 'SR': return 'text-[#9B59B6] dark:text-[#C175E6]';
+      case 'R': return 'text-[#F39C12] dark:text-[#FFE44D]';
+      case 'N': return 'text-[var(--text-muted)]';
+      default: return 'text-[var(--text-muted)]';
+    }
+  };
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500">
@@ -63,7 +120,6 @@ export default function ProfilePage() {
             {theme === 'dark' ? <Sun size={20} className="text-yellow-300" /> : <Moon size={20} />}
           </button>
           
-          {/* Linked to the new Trade Inbox */}
           <button onClick={() => navigate('/inbox')} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] relative transition-colors duration-500">
             <Bell size={20} />
             <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-[var(--accent-pink)] rounded-full border-2 border-[var(--bg-app)]" />
@@ -72,14 +128,12 @@ export default function ProfilePage() {
       </header>
 
       <main className="space-y-8 relative">
-        {/* Subtle glow behind the card */}
         <div className="absolute top-4 right-0 w-20 h-20 bg-[var(--accent-sky)] rounded-full blur-3xl opacity-30 z-0" />
 
-        {/* MAIN PROFILE CARD using the glass-panel class */}
+        {/* MAIN PROFILE CARD */}
         <div className="glass-panel p-6 relative overflow-hidden z-10 mt-12">
           
           <div className="flex items-center gap-6 mb-6 relative z-10">
-            {/* Avatar */}
             <div className="w-24 h-24 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)] bg-[var(--bg-card)] relative">
               <span className="text-4xl font-black text-[var(--accent)]">{profile.username.charAt(0)}</span>
               <button onClick={() => navigate('/edit-profile')} className="absolute -bottom-2 -right-2 p-1.5 bg-[var(--accent)] text-white rounded-full hover:scale-110 transition-transform shadow-md">
@@ -87,11 +141,9 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            {/* Identity Info */}
             <div className="flex-1 pr-12">
               <h2 className="text-2xl font-black mb-1 break-all">{profile.username}</h2>
               
-              {/* PRONOUNS DISPLAY */}
               {profile.pronouns && (
                 <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 mb-2 inline-block uppercase tracking-wider">
                   {profile.pronouns}
@@ -103,7 +155,6 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            {/* Absolute Gear Icon */}
             <button 
               onClick={() => navigate('/edit-profile')}
               className="absolute top-0 right-0 p-3 bg-[var(--bg-app)]/50 text-[var(--accent)] rounded-2xl hover:bg-[var(--accent)]/10 transition-colors"
@@ -112,7 +163,6 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          {/* SANRIO BUDDY DISPLAY */}
           {profile.sanrioBuddy && (
             <div className="mb-6 flex items-center gap-2 text-xs font-bold bg-[var(--bg-app)]/50 px-4 py-2.5 rounded-2xl border border-[var(--border-subtle)] w-fit text-[var(--text-main)]">
               <Heart size={14} className="text-[var(--accent-pink)] fill-[var(--accent-pink)]" />
@@ -120,7 +170,6 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* STATS GRID */}
           <div className="grid grid-cols-2 gap-3 border-t border-[var(--border-subtle)] pt-6 mb-6">
             <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)] hover:bg-[var(--bg-app)] transition-colors">
               <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Mints</span>
@@ -132,13 +181,11 @@ export default function ProfilePage() {
               <span className="text-lg font-black">14</span>
             </div>
 
-            {/* TRADE VIBE DISPLAY */}
             <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)] hover:bg-[var(--bg-app)] transition-colors">
               <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Trade Vibe</span>
               <span className="text-sm font-black text-[var(--accent)]">{profile.tradeVibe || 'Mystery'}</span>
             </div>
 
-            {/* BIRTHDAY DISPLAY */}
             <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)] hover:bg-[var(--bg-app)] transition-colors">
               <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Birthday</span>
               <span className="text-sm font-black flex items-center gap-1.5">
@@ -148,7 +195,6 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* LOGOUT BUTTON */}
           <button 
             onClick={() => { signOut(); navigate('/login'); }} 
             className="w-full flex justify-between items-center p-5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl font-black text-xs uppercase hover:bg-red-500/20 transition-colors"
@@ -160,23 +206,47 @@ export default function ProfilePage() {
           </button>
         </div>
 
+        {/* 3-HEART WISHLIST SECTION */}
+        <div className="relative z-10 pt-4">
+          <h3 className="font-black uppercase tracking-widest text-xs flex items-center gap-2 text-[var(--text-main)] mb-4 pl-2">
+            <Heart size={14} className="text-[var(--accent-pink)] fill-[var(--accent-pink)]" /> My Top Wishlist
+          </h3>
+          
+          {wishlistItems.length > 0 ? (
+            <div className="grid grid-cols-3 gap-3">
+              {wishlistItems.map((item) => (
+                <div key={item.id} className={`glass-panel p-2 flex flex-col items-center text-center ${getRarityStyles(item.rarity)}`}>
+                  <div className="w-12 h-12 rounded-xl bg-[var(--bg-app)] border border-[var(--border-subtle)] flex items-center justify-center mb-2 mt-2 overflow-hidden">
+                    {item.image_url ? (
+                      <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Package size={20} className="text-[var(--text-muted)]" />
+                    )}
+                  </div>
+                  <span className={`text-[8px] font-black uppercase ${getRarityColor(item.rarity)}`}>{item.rarity || 'N'}</span>
+                  <span className="text-[8px] font-bold line-clamp-1 text-[var(--text-main)] leading-tight w-full truncate px-1">{item.name}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+             <div className="glass-panel py-6 flex flex-col items-center justify-center border-dashed">
+                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-2">No items wished for yet</p>
+                <button onClick={() => navigate('/catalog')} className="text-[10px] font-bold text-[var(--accent)] hover:underline">
+                  Browse Catalog
+                </button>
+             </div>
+          )}
+        </div>
+
         {/* RECENT FINDS SECTION */}
-        <div className="relative z-10">
+        <div className="relative z-10 pt-2">
            <div className="flex justify-between items-center mb-4 text-[var(--text-muted)] px-2">
              <h3 className="font-black text-sm uppercase">Recent Finds</h3>
              <Package size={16} />
            </div>
            
            <div className="glass-panel py-8 flex flex-col items-center justify-center border-dashed">
-              <img 
-                src="/kumo-sad.png" 
-                alt="Sad Kumoru" 
-                className="w-24 h-24 mb-4 drop-shadow-lg opacity-80 grayscale transition-all hover:grayscale-0" 
-                onError={(e) => {
-                  // Fallback if the image doesn't exist
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+              <img src="/kumo-sad.png" alt="Sad Kumoru" className="w-24 h-24 mb-4 drop-shadow-lg opacity-80 grayscale" />
               <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">No items in orbit</p>
            </div>
         </div>
