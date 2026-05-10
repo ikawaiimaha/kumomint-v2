@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   Plus, Package, Sparkles, ChevronLeft, 
-  Image as ImageIcon, Fingerprint, Star, CheckCircle2 
+  Image as ImageIcon, Fingerprint, CheckCircle2 
 } from 'lucide-react';
 
 export default function CreatorDashboard() {
@@ -116,7 +116,6 @@ export default function CreatorDashboard() {
 
         <form onSubmit={handleMint} className="space-y-6">
           
-          {/* Item Name */}
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-2">Item Name</label>
             <div className="glass-panel p-1 flex items-center">
@@ -132,7 +131,6 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Rarity Selector */}
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-2">Rarity Tier</label>
             <div className="grid grid-cols-4 gap-2">
@@ -153,7 +151,6 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Image URL */}
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-2">Asset URL</label>
             <div className="glass-panel p-1 flex items-center">
@@ -168,7 +165,6 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* Collection Select */}
           <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-2">Collection</label>
             <div className="glass-panel p-1 flex items-center">
@@ -187,7 +183,6 @@ export default function CreatorDashboard() {
             </div>
           </div>
 
-          {/* MINT BUTTON */}
           <button 
             type="submit"
             disabled={isMinting}
@@ -203,7 +198,6 @@ export default function CreatorDashboard() {
 
         </form>
 
-        {/* Live Preview */}
         <div className="mt-12">
           <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] text-center mb-4">Live Preview</p>
           <div className="flex justify-center">
@@ -212,7 +206,7 @@ export default function CreatorDashboard() {
                 {rarity}
               </div>
               <div className="w-20 h-20 rounded-2xl bg-[var(--bg-app)]/50 border border-[var(--border-subtle)] flex items-center justify-center overflow-hidden mb-3 mt-4">
-                {imageUrl ? <img src={imageUrl} className="w-full h-full object-cover" /> : <Package size={32} className="opacity-20" />}
+                {imageUrl ? <img src={imageUrl} className="w-full h-full object-cover" alt="Preview" /> : <Package size={32} className="opacity-20" />}
               </div>
               <h3 className="font-black text-[10px] leading-tight mb-1">{name || 'Item Name'}</h3>
             </div>
