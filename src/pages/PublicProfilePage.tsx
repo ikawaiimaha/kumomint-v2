@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, ArrowRightLeft, Package, Sparkles, Heart, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, ArrowRightLeft, Package, Heart, Clock } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 // --- MOCK DATA (Later fetched from Supabase using the ID in the URL) ---
@@ -31,7 +30,6 @@ const INVENTORY = [
 
 export default function PublicProfilePage() {
   const navigate = useNavigate();
-  const { id } = useParams(); // Gets the user ID from the URL
   const { resolvedTheme } = useTheme();
 
   // Visual Helpers for HKDV Rarities
