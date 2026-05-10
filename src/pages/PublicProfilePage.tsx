@@ -4,25 +4,22 @@ import { ChevronLeft, ArrowRightLeft, Package, Sparkles, Heart, Clock } from 'lu
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
 
-type WishlistItem = {
+type ItemDetail = {
   id: string;
   name: string;
   rarity: string;
   image_url: string;
 };
 
-// MOCK INVENTORY (Since we haven't built the user inventory table yet)
-const INVENTORY = [
-  { id: '201', name: "Moonlit Ribbon", rarity: "R", image: "🎀" },
-  { id: '202', name: "Cozy Nightcap", rarity: "N", image: "🌙" },
-  { id: '203', name: "Fluffy Cloud Bed", rarity: "SR", image: "☁️" },
-  { id: '204', name: "Star Pin", rarity: "R", image: "⭐" },
-  { id: '205', name: "Pastel Sparkles", rarity: "N", image: "✨" }
-];
+type InventoryItem = {
+  id: string;
+  item_id: string;
+  items: ItemDetail;
+};
 
 export default function PublicProfilePage() {
   const navigate = useNavigate();
-  const { id } = useParams(); // Gets the user ID from the URL
+  const { id } = useParams(); 
   const { resolvedTheme } = useTheme();
 
   const [profile, setProfile] = useState({
@@ -30,16 +27,16 @@ export default function PublicProfilePage() {
     username: 'Loading...',
     pronouns: '',
     tradeVibe: 'Mystery',
-    sanrioBuddy: '',
-    mints: 42,   // Mock stats
-    trades: 156  // Mock stats
+    sanrioBuddy: ''
   });
   
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
+  const [wishlistItems, setWishlistItems] = useState<ItemDetail[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
+    setLoading(true);
     
     try {
       // 1. Fetch Profile Data
@@ -50,37 +47,37 @@ export default function PublicProfilePage() {
         .single();
         
       if (profileData) {
-        setProfile(prev => ({
-          ...prev,
+        setProfile({
           id: profileData.id,
           username: profileData.username || 'Unknown Star',
           pronouns: profileData.pronouns || '',
           sanrioBuddy: profileData.sanrio_buddy || '',
           tradeVibe: profileData.trade_vibe || 'Mystery'
-        }));
+        });
       }
 
-      // 2. Fetch Wishlist Data (Join with items table)
+      // 2. Fetch Wishlist Data
       const { data: wishData } = await supabase
         .from('wishlists')
-        .select(`
-          items (
-            id,
-            name,
-            rarity,
-            image_url
-          )
-        `)
+        .select(`items (id, name, rarity, image_url)`)
         .eq('trader_id', id);
 
       if (wishData) {
-        const formattedItems = wishData
-          .map(w => w.items)
-          .filter(Boolean) as unknown as WishlistItem[];
-        setWishlistItems(formattedItems);
+        setWishlistItems(wishData.map(w => w.items).filter(Boolean) as unknown as ItemDetail[]);
       }
+
+      // 3. Fetch REAL Inventory Data from user_items
+      const { data: invData } = await supabase
+        .from('user_items')
+        .select(`id, item_id, items (name, rarity, image_url)`)
+        .eq('user_id', id);
+
+      if (invData) {
+        setInventory((invData as unknown as InventoryItem[]) || []);
+      }
+
     } catch (error) {
-      console.error("Error fetching public profile data:", error);
+      console.error("Error fetching public profile:", error);
     } finally {
       setLoading(false);
     }
@@ -90,7 +87,6 @@ export default function PublicProfilePage() {
     fetchData();
   }, [fetchData]);
 
-  // Visual Helpers for HKDV Rarities
   const getRarityStyles = (rarity: string) => {
     if (resolvedTheme === 'light') return ''; 
     switch (rarity?.toUpperCase()) {
@@ -107,79 +103,55 @@ export default function PublicProfilePage() {
       case 'SSR': return 'text-[#E84393] dark:text-[#FF6BB3]';
       case 'SR': return 'text-[#9B59B6] dark:text-[#C175E6]';
       case 'R': return 'text-[#F39C12] dark:text-[#FFE44D]';
-      case 'N': return 'text-[var(--text-muted)]';
       default: return 'text-[var(--text-muted)]';
     }
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)]">
       <Sparkles className="animate-spin text-[var(--accent)]" />
     </div>
   );
 
   return (
     <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500 relative">
-      
-      {/* HEADER */}
       <header className="flex items-center justify-between mb-8 relative z-20">
-        <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors">
+        <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
           <ChevronLeft size={20} className="text-[var(--text-muted)]" />
         </button>
         <h1 className="text-xl font-black uppercase tracking-tighter text-[var(--text-muted)]">User Orbit</h1>
-        <div className="w-10" /> {/* Spacer */}
+        <div className="w-10" />
       </header>
 
       <main className="space-y-6 relative">
-        
-        {/* Subtle glow behind the card */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--accent)] rounded-full blur-3xl opacity-20 z-0 pointer-events-none" />
 
         {/* PROFILE CARD */}
         <div className="glass-panel p-6 relative z-10">
           <div className="flex items-center gap-5 mb-5">
-            <div className="w-20 h-20 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)] bg-[var(--bg-card)]">
+            <div className="w-20 h-20 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center bg-[var(--bg-card)]">
               <span className="text-3xl font-black text-[var(--accent)]">{profile.username.charAt(0)}</span>
             </div>
             <div className="flex-1">
               <h2 className="text-2xl font-black mb-1">{profile.username}</h2>
-              <div className="flex flex-wrap gap-2 mb-2">
+              <div className="flex flex-wrap gap-2">
                 {profile.pronouns && (
-                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 uppercase tracking-wider">
+                  <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 uppercase">
                     {profile.pronouns}
                   </span>
                 )}
-                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[var(--bg-app)] border border-[var(--border-subtle)] text-[var(--text-muted)] uppercase tracking-wider">
+                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[var(--bg-app)] border border-[var(--border-subtle)] text-[var(--text-muted)] uppercase">
                   {profile.tradeVibe}
                 </span>
               </div>
             </div>
           </div>
-
           {profile.sanrioBuddy && (
             <div className="mb-5 flex items-center gap-2 text-[10px] font-bold bg-[var(--bg-app)]/50 px-3 py-2 rounded-xl border border-[var(--border-subtle)] w-fit text-[var(--text-main)] uppercase tracking-widest">
               <Heart size={12} className="text-[var(--accent-pink)] fill-[var(--accent-pink)]" />
               Buddy: <span className="text-[var(--accent)]">{profile.sanrioBuddy}</span>
             </div>
           )}
-
-          {/* Stats */}
-          <div className="flex gap-4 border-t border-[var(--border-subtle)] pt-4">
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Mints</span>
-              <span className="text-sm font-black">{profile.mints}</span>
-            </div>
-            <div className="w-px bg-[var(--border-subtle)]" />
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Trades</span>
-              <span className="text-sm font-black">{profile.trades}</span>
-            </div>
-            <div className="w-px bg-[var(--border-subtle)]" />
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Last Seen</span>
-              <span className="text-sm font-black flex items-center gap-1"><Clock size={12}/> 2h ago</span>
-            </div>
-          </div>
         </div>
 
         {/* 3-HEART WISHLIST */}
@@ -192,61 +164,62 @@ export default function PublicProfilePage() {
               {wishlistItems.map(item => (
                 <div key={item.id} className={`glass-panel p-2 flex flex-col items-center text-center ${getRarityStyles(item.rarity)}`}>
                   <div className="w-12 h-12 rounded-xl bg-[var(--bg-app)] border border-[var(--border-subtle)] flex items-center justify-center mb-2 mt-2 overflow-hidden">
-                    {item.image_url ? (
-                      <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Package size={20} className="text-[var(--text-muted)]" />
-                    )}
+                    {item.image_url ? <img src={item.image_url} alt="item" className="w-full h-full object-cover" /> : <Package size={20} />}
                   </div>
                   <span className={`text-[8px] font-black uppercase ${getRarityColor(item.rarity)}`}>{item.rarity || 'N'}</span>
-                  <span className="text-[8px] font-bold line-clamp-1 text-[var(--text-main)] leading-tight">{item.name}</span>
+                  <span className="text-[8px] font-bold line-clamp-1 leading-tight">{item.name}</span>
                 </div>
               ))}
             </div>
           ) : (
             <div className="glass-panel py-6 flex flex-col items-center justify-center border-dashed">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">No items wished for yet</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">No items wished for</p>
             </div>
           )}
         </div>
 
-        {/* INVENTORY GRID (Mock Data until we build the inventory engine) */}
+        {/* REAL INVENTORY GRID */}
         <div className="relative z-10 pt-4">
-          <div className="flex justify-between items-center mb-3 pl-2 pr-2">
+          <div className="flex justify-between items-center mb-3 pl-2">
             <h3 className="font-black uppercase tracking-widest text-xs flex items-center gap-2 text-[var(--text-main)]">
               <Package size={14} /> Their Orbit
             </h3>
-            <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
-              {INVENTORY.length} Items
+            <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-widest pr-2">
+              {inventory.length} Items
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            {INVENTORY.map((item) => (
-              <div key={item.id} className={`glass-panel p-3 flex flex-col items-center text-center relative group ${getRarityStyles(item.rarity)}`}>
-                <div className={`absolute top-2 left-2 text-[9px] font-black uppercase tracking-widest ${getRarityColor(item.rarity)}`}>
-                  {item.rarity}
+          {inventory.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {inventory.map((item) => (
+                <div key={item.id} className={`glass-panel p-3 flex flex-col items-center text-center relative group transition-all ${getRarityStyles(item.items.rarity)}`}>
+                  <div className={`absolute top-2 left-2 text-[9px] font-black uppercase tracking-widest ${getRarityColor(item.items.rarity)}`}>
+                    {item.items.rarity || 'N'}
+                  </div>
+                  <div className="w-16 h-16 rounded-2xl bg-[var(--bg-app)]/50 border border-[var(--border-subtle)] flex items-center justify-center overflow-hidden mb-2 mt-4">
+                    {item.items.image_url ? <img src={item.items.image_url} alt="item" className="w-full h-full object-cover" /> : <Package size={32} />}
+                  </div>
+                  <h3 className="font-black text-[10px] leading-tight mb-0.5 line-clamp-2">{item.items.name}</h3>
                 </div>
-                <div className="w-16 h-16 rounded-2xl bg-[var(--bg-app)]/50 border border-[var(--border-subtle)] flex items-center justify-center text-3xl mb-2 mt-4">
-                  {item.image}
-                </div>
-                <h3 className="font-black text-[10px] leading-tight mb-0.5">{item.name}</h3>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="glass-panel py-12 flex flex-col items-center justify-center border-dashed">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">This orbit is empty</p>
+            </div>
+          )}
         </div>
 
         {/* FLOATING PROPOSE TRADE BUTTON */}
         <div className="fixed bottom-24 left-6 right-6 z-40">
           <button 
             onClick={() => navigate('/propose', { state: { receiverId: profile.id } })}
-            className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase shadow-[0_10px_30px_rgba(163,137,244,0.4)] flex justify-center items-center gap-2 hover:opacity-90 transition-opacity"
+            className="w-full py-4 bg-[var(--accent)] text-white rounded-2xl font-black text-xs uppercase shadow-[0_10px_30px_rgba(163,137,244,0.4)] flex justify-center items-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-50"
             disabled={!profile.id}
           >
             <ArrowRightLeft size={16} /> Propose Trade
           </button>
         </div>
-
       </main>
     </div>
   );
