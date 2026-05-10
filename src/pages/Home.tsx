@@ -42,10 +42,12 @@ export default function Home() {
           <h1 className="text-3xl font-black tracking-tight">{username}</h1>
         </div>
         
-        {/* Little Teacup Kumoru Greeting */}
-        <div className="w-16 h-16 animate-[float_6s_ease-in-out_infinite] drop-shadow-lg">
+        {/* Little Teacup Kumoru Greeting - Now links to test Public Profile! */}
+        <div 
+          onClick={() => navigate('/user/123')}
+          className="w-16 h-16 animate-[float_6s_ease-in-out_infinite] drop-shadow-lg cursor-pointer hover:scale-110 transition-transform"
+        >
           <img src="/kumo-sad.png" alt="Kumoru" className="w-full h-full object-contain drop-shadow-[0_4px_8px_rgba(163,137,244,0.3)]" />
-          {/* Note: Swap 'kumo-sad.png' with a happy version if you have one! */}
         </div>
       </header>
 
