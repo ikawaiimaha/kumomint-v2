@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Search, Filter, Heart, Package, LogIn, X, ArrowRightLeft } from 'lucide-react';
+import { Sparkles, Search, Filter, Package, LogIn, X, ArrowRightLeft } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
 // Defining our types based on your Supabase structure
