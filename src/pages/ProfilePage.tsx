@@ -25,7 +25,6 @@ export default function ProfilePage() {
 
   const fetchProfile = useCallback(async () => {
     if (!user) return;
-    // FETCHING ALL THE NEW COLUMNS!
     const { data } = await supabase
       .from('traders')
       .select('username, pronouns, sanrio_buddy, trade_vibe, birthday')
@@ -56,15 +55,18 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app)] text-[var(--text-main)] overflow-hidden transition-colors duration-500">
+      
       <header className="flex justify-between items-center mb-10 relative z-20">
         <h1 className="text-xl font-black uppercase tracking-tighter">My Orbit</h1>
         <div className="flex gap-4">
-          <button onClick={toggleTheme} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-dashed border-[var(--accent)]/30 transition-colors duration-500">
+          <button onClick={toggleTheme} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-dashed border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] transition-colors duration-500">
             {theme === 'dark' ? <Sun size={20} className="text-yellow-300" /> : <Moon size={20} />}
           </button>
-          <button onClick={() => navigate('/notifications')} className="p-2.5 rounded-2xl bg-[var(--bg-card)] relative transition-colors duration-500">
+          
+          {/* Linked to the new Trade Inbox */}
+          <button onClick={() => navigate('/inbox')} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)] relative transition-colors duration-500">
             <Bell size={20} />
-            <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-pink-400 rounded-full border-2 border-[var(--bg-app)]" />
+            <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-[var(--accent-pink)] rounded-full border-2 border-[var(--bg-app)]" />
           </button>
         </div>
       </header>
@@ -73,14 +75,14 @@ export default function ProfilePage() {
         {/* Subtle glow behind the card */}
         <div className="absolute top-4 right-0 w-20 h-20 bg-[var(--accent-sky)] rounded-full blur-3xl opacity-30 z-0" />
 
-        {/* MAIN PROFILE CARD using the new glass-panel class */}
+        {/* MAIN PROFILE CARD using the glass-panel class */}
         <div className="glass-panel p-6 relative overflow-hidden z-10 mt-12">
           
           <div className="flex items-center gap-6 mb-6 relative z-10">
             {/* Avatar */}
-            <div className="w-24 h-24 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)] bg-white relative">
+            <div className="w-24 h-24 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center shadow-[0_0_15px_rgba(163,137,244,0.3)] bg-[var(--bg-card)] relative">
               <span className="text-4xl font-black text-[var(--accent)]">{profile.username.charAt(0)}</span>
-              <button onClick={() => navigate('/edit-profile')} className="absolute -bottom-2 -right-2 p-1.5 bg-[var(--accent)] text-white rounded-full">
+              <button onClick={() => navigate('/edit-profile')} className="absolute -bottom-2 -right-2 p-1.5 bg-[var(--accent)] text-white rounded-full hover:scale-110 transition-transform shadow-md">
                 <Edit3 size={14} />
               </button>
             </div>
@@ -118,26 +120,26 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* STATS GRID - Now accommodates the new data points */}
+          {/* STATS GRID */}
           <div className="grid grid-cols-2 gap-3 border-t border-[var(--border-subtle)] pt-6 mb-6">
-            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
+            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)] hover:bg-[var(--bg-app)] transition-colors">
               <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Mints</span>
               <span className="text-lg font-black">128</span>
             </div>
             
-            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
+            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)] hover:bg-[var(--bg-app)] transition-colors">
               <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Trades</span>
               <span className="text-lg font-black">14</span>
             </div>
 
             {/* TRADE VIBE DISPLAY */}
-            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
+            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)] hover:bg-[var(--bg-app)] transition-colors">
               <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Trade Vibe</span>
               <span className="text-sm font-black text-[var(--accent)]">{profile.tradeVibe || 'Mystery'}</span>
             </div>
 
             {/* BIRTHDAY DISPLAY */}
-            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
+            <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)] hover:bg-[var(--bg-app)] transition-colors">
               <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Birthday</span>
               <span className="text-sm font-black flex items-center gap-1.5">
                 <Calendar size={14} className="text-[var(--accent-pink)]"/> 
@@ -146,9 +148,10 @@ export default function ProfilePage() {
             </div>
           </div>
 
+          {/* LOGOUT BUTTON */}
           <button 
             onClick={() => { signOut(); navigate('/login'); }} 
-            className="w-full flex justify-between items-center p-5 bg-red-500/10 text-red-500 rounded-2xl font-black text-xs uppercase hover:bg-red-500/20 transition-colors"
+            className="w-full flex justify-between items-center p-5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl font-black text-xs uppercase hover:bg-red-500/20 transition-colors"
           >
             <div className="flex items-center gap-3">
               <LogOut size={18} /> Logout
@@ -157,16 +160,22 @@ export default function ProfilePage() {
           </button>
         </div>
 
+        {/* RECENT FINDS SECTION */}
         <div className="relative z-10">
-           <div className="flex justify-between items-center mb-4 text-[var(--text-muted)]">
+           <div className="flex justify-between items-center mb-4 text-[var(--text-muted)] px-2">
              <h3 className="font-black text-sm uppercase">Recent Finds</h3>
              <Package size={16} />
            </div>
-           <div className="py-8 flex flex-col items-center justify-center">
+           
+           <div className="glass-panel py-8 flex flex-col items-center justify-center border-dashed">
               <img 
                 src="/kumo-sad.png" 
                 alt="Sad Kumoru" 
-                className="w-24 h-24 mb-4 drop-shadow-lg opacity-80" 
+                className="w-24 h-24 mb-4 drop-shadow-lg opacity-80 grayscale transition-all hover:grayscale-0" 
+                onError={(e) => {
+                  // Fallback if the image doesn't exist
+                  e.currentTarget.style.display = 'none';
+                }}
               />
               <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">No items in orbit</p>
            </div>
