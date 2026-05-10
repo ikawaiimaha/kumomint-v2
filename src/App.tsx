@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { Sparkles } from 'lucide-react';
 
 // Pages
 import Home from './pages/Home';
@@ -9,14 +10,14 @@ import WardrobePage from './pages/WardrobePage';
 import ProfilePage from './pages/ProfilePage';
 import EditProfile from './pages/EditProfile';
 import CreatorDashboard from './pages/CreatorDashboard';
-import NotificationsPage from './pages/NotificationsPage';
+import TradeInboxPage from './pages/TradeInboxPage';
+import TradeProposalPage from './pages/TradeProposalPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 
 // Components
 import BottomNav from './components/BottomNav';
 import StarField from './components/StarField';
-import { Sparkles } from 'lucide-react';
 
 const ProtectedRoute = () => {
   const { user, loading } = useAuth();
@@ -24,7 +25,7 @@ const ProtectedRoute = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)] transition-colors duration-500">
-        <Sparkles className="animate-spin text-[var(--accent)]" />
+        <Sparkles className="animate-spin text-[var(--accent)]" size={32} />
       </div>
     );
   }
@@ -56,7 +57,10 @@ export default function App() {
                 <Route path="/profile" element={<ProfilePage />} />
                 <Route path="/edit-profile" element={<EditProfile />} />
                 <Route path="/creator" element={<CreatorDashboard />} />
-                <Route path="/notifications" element={<NotificationsPage />} />
+                
+                {/* New Trading Routes */}
+                <Route path="/inbox" element={<TradeInboxPage />} />
+                <Route path="/propose" element={<TradeProposalPage />} />
               </Route>
             </Routes>
 
