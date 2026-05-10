@@ -35,7 +35,6 @@ export default function ProfilePage() {
     if (!user) return;
     
     try {
-      // 1. Fetch Profile Data
       const { data: profileData } = await supabase
         .from('traders')
         .select('username, pronouns, sanrio_buddy, trade_vibe, birthday')
@@ -52,7 +51,6 @@ export default function ProfilePage() {
         });
       }
 
-      // 2. Fetch Wishlist Data
       const { data: wishData } = await supabase
         .from('wishlists')
         .select(`items (id, name, rarity, image_url)`)
@@ -62,7 +60,6 @@ export default function ProfilePage() {
         setWishlistItems(wishData.map(w => w.items).filter(Boolean) as unknown as WishlistItem[]);
       }
 
-      // 3. Fetch Real Stats
       const { count: invCount } = await supabase
         .from('user_items')
         .select('*', { count: 'exact', head: true })
@@ -139,7 +136,7 @@ export default function ProfilePage() {
         {/* MAIN PROFILE CARD */}
         <div className="glass-panel p-6 relative overflow-hidden z-10 mt-12">
           
-          {/* Settings gear moved to absolute top-right */}
+          {/* Settings gear stays in the absolute corner */}
           <button 
             onClick={() => navigate('/edit-profile')}
             className="absolute top-4 right-4 p-3 bg-[var(--bg-app)]/50 text-[var(--accent)] rounded-2xl hover:bg-[var(--accent)]/10 transition-colors z-20"
@@ -148,7 +145,7 @@ export default function ProfilePage() {
           </button>
 
           <div className="flex items-center gap-6 mb-6 relative z-10">
-            {/* Avatar */}
+            {/* Avatar Section */}
             <div className="w-24 h-24 shrink-0 rounded-full border-2 border-[var(--accent)] flex items-center justify-center bg-[var(--bg-card)] relative shadow-[0_0_15px_rgba(163,137,244,0.3)]">
               <span className="text-4xl font-black text-[var(--accent)]">{profile.username.charAt(0)}</span>
               <button onClick={() => navigate('/edit-profile')} className="absolute -bottom-2 -right-2 p-1.5 bg-[var(--accent)] text-white rounded-full hover:scale-110 transition-transform shadow-md">
@@ -156,13 +153,13 @@ export default function ProfilePage() {
               </button>
             </div>
 
-            {/* Username Section with Fixes */}
-            <div className="flex-1 min-w-0 pr-8"> 
-              <h2 className="text-2xl font-black mb-1 truncate text-[var(--text-main)]">
+            {/* Username & Info Section - Unified Space */}
+            <div className="flex-1 min-w-0 pr-2"> 
+              <h2 className="text-xl font-black mb-1 text-[var(--text-main)] leading-tight">
                 {profile.username}
               </h2>
               {profile.pronouns && (
-                <span className="text-[10px] font-black px-2.5 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 mb-2 inline-block uppercase">
+                <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 mb-2 inline-block uppercase tracking-widest">
                   {profile.pronouns}
                 </span>
               )}
@@ -173,7 +170,7 @@ export default function ProfilePage() {
           </div>
 
           {profile.sanrioBuddy && (
-            <div className="mb-6 flex items-center gap-2 text-xs font-bold bg-[var(--bg-app)]/50 px-4 py-2.5 rounded-2xl border border-[var(--border-subtle)] w-fit">
+            <div className="mb-6 flex items-center gap-2 text-[10px] font-bold bg-[var(--bg-app)]/50 px-4 py-2 rounded-2xl border border-[var(--border-subtle)] w-fit uppercase tracking-widest">
               <Heart size={14} className="text-[var(--accent-pink)] fill-[var(--accent-pink)]" />
               Buddy: <span className="text-[var(--accent)]">{profile.sanrioBuddy}</span>
             </div>
@@ -182,23 +179,23 @@ export default function ProfilePage() {
           {/* DYNAMIC STATS GRID */}
           <div className="grid grid-cols-2 gap-3 border-t border-[var(--border-subtle)] pt-6 mb-6">
             <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
-              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Mints</span>
+              <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Mints</span>
               <span className="text-lg font-black">{stats.inventoryCount}</span>
             </div>
             
             <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
-              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Trades</span>
+              <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Trades</span>
               <span className="text-lg font-black">{stats.completedTrades}</span>
             </div>
 
             <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
-              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Trade Vibe</span>
-              <span className="text-sm font-black text-[var(--accent)]">{profile.tradeVibe || 'Mystery'}</span>
+              <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Trade Vibe</span>
+              <span className="text-xs font-black text-[var(--accent)]">{profile.tradeVibe || 'Mystery'}</span>
             </div>
 
             <div className="flex flex-col bg-[var(--bg-app)]/40 p-4 rounded-2xl border border-[var(--border-subtle)]">
-              <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mb-1">Birthday</span>
-              <span className="text-sm font-black flex items-center gap-1.5">
+              <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-1">Birthday</span>
+              <span className="text-xs font-black flex items-center gap-1.5">
                 <Calendar size={14} className="text-[var(--accent-pink)]"/> 
                 {profile.birthday || '??/??'}
               </span>
@@ -207,7 +204,7 @@ export default function ProfilePage() {
 
           <button 
             onClick={() => { signOut(); navigate('/login'); }} 
-            className="w-full flex justify-between items-center p-5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl font-black text-xs uppercase"
+            className="w-full flex justify-between items-center p-5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl font-black text-[10px] uppercase tracking-widest"
           >
             <div className="flex items-center gap-3">
               <LogOut size={18} /> Logout
@@ -218,14 +215,14 @@ export default function ProfilePage() {
 
         {/* 3-HEART WISHLIST SECTION */}
         <div className="relative z-10 pt-4">
-          <h3 className="font-black uppercase tracking-widest text-xs flex items-center gap-2 mb-4 pl-2">
+          <h3 className="font-black uppercase tracking-widest text-[10px] flex items-center gap-2 mb-4 pl-2">
             <Heart size={14} className="text-[var(--accent-pink)] fill-[var(--accent-pink)]" /> My Top Wishlist
           </h3>
           
           {wishlistItems.length > 0 ? (
             <div className="grid grid-cols-3 gap-3">
-              {wishlistItems.map((item) => (
-                <div key={item.id} className={`glass-panel p-2 flex flex-col items-center text-center ${getRarityStyles(item.rarity)}`}>
+              {wishlistItems.map((item, idx) => (
+                <div key={idx} className={`glass-panel p-2 flex flex-col items-center text-center ${getRarityStyles(item.rarity)}`}>
                   <div className="w-12 h-12 rounded-xl bg-[var(--bg-app)] border border-[var(--border-subtle)] flex items-center justify-center mb-2 mt-2 overflow-hidden">
                     {item.image_url ? (
                       <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
