@@ -1,80 +1,137 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, Inbox, Send, CheckCircle2, XCircle, ArrowRightLeft, Clock } from 'lucide-react';
+import { ChevronLeft, Inbox, Send, CheckCircle2, XCircle, ArrowRightLeft, Clock, Sparkles } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
-// --- MOCK DATA ---
-type Item = { id: number, name: string, rarity: string, image: string };
-type TradeOffer = {
+// Types
+type DbItem = { id: string, name: string, rarity: string, image_url: string };
+type Trade = {
   id: string,
-  type: 'incoming' | 'outgoing',
-  otherUser: { name: string, avatar: string },
-  giving: Item[],    // What the initiator is giving
-  receiving: Item[], // What the initiator wants
-  status: 'pending' | 'accepted' | 'declined',
-  timeAgo: string
+  initiator_id: string,
+  receiver_id: string,
+  offered_items: string[],
+  requested_items: string[],
+  status: string,
+  created_at: string
 };
-
-const MOCK_TRADES: TradeOffer[] = [
-  {
-    id: "trd_1",
-    type: 'incoming',
-    otherUser: { name: "StarBoi99", avatar: "S" },
-    giving: [{ id: 201, name: "Dreamy Carousel", rarity: "SSR", image: "🎠" }],
-    receiving: [
-      { id: 101, name: "Cinnamoroll Cloud Hat", rarity: "SR", image: "☁️" },
-      { id: 102, name: "Star Pin", rarity: "R", image: "⭐" }
-    ],
-    status: 'pending',
-    timeAgo: "10m ago"
-  },
-  {
-    id: "trd_2",
-    type: 'incoming',
-    otherUser: { name: "MelodyFan", avatar: "M" },
-    giving: [{ id: 202, name: "Cozy Nightcap", rarity: "N", image: "🌙" }],
-    receiving: [{ id: 103, name: "Pastel Sparkles", rarity: "N", image: "✨" }],
-    status: 'pending',
-    timeAgo: "2h ago"
-  },
-  {
-    id: "trd_3",
-    type: 'outgoing',
-    otherUser: { name: "KuromiQueen", avatar: "K" },
-    giving: [{ id: 104, name: "Galaxy Wand", rarity: "SSR", image: "🪄" }],
-    receiving: [{ id: 204, name: "Spooky Ribbon", rarity: "SR", image: "🎀" }],
-    status: 'pending',
-    timeAgo: "1d ago"
-  }
-];
 
 export default function TradeInboxPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  
   const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming');
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [itemDictionary, setItemDictionary] = useState<Record<string, DbItem>>({});
+  const [loading, setLoading] = useState(true);
 
-  const filteredTrades = MOCK_TRADES.filter(trade => trade.type === activeTab);
+  // Fetch real trades and the associated items
+  const fetchInboxData = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
 
-  // Tiny Rarity Colors
+    try {
+      // 1. Fetch trades where user is involved
+      const { data: tradeData, error: tradeError } = await supabase
+        .from('trades')
+        .select('*')
+        .or(`initiator_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
+
+      if (tradeError) throw tradeError;
+      
+      const fetchedTrades = (tradeData as Trade[]) || [];
+      setTrades(fetchedTrades);
+
+      // 2. Collect all unique item IDs from these trades
+      const allItemIds = new Set<string>();
+      fetchedTrades.forEach(t => {
+        t.offered_items.forEach(id => allItemIds.add(id));
+        t.requested_items.forEach(id => allItemIds.add(id));
+      });
+
+      // 3. Fetch item details for the dictionary
+      if (allItemIds.size > 0) {
+        const { data: itemData } = await supabase
+          .from('items')
+          .select('*')
+          .in('id', Array.from(allItemIds));
+
+        if (itemData) {
+          const dict: Record<string, DbItem> = {};
+          itemData.forEach(item => dict[item.id] = item);
+          setItemDictionary(dict);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching inbox:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    fetchInboxData();
+  }, [fetchInboxData]);
+
+  // Handle Trade Actions
+  const updateTradeStatus = async (tradeId: string, newStatus: 'accepted' | 'declined' | 'cancelled') => {
+    try {
+      const { error } = await supabase
+        .from('trades')
+        .update({ status: newStatus })
+        .eq('id', tradeId);
+        
+      if (error) throw error;
+      
+      // Update local state instantly
+      setTrades(prev => prev.map(t => t.id === tradeId ? { ...t, status: newStatus } : t));
+    } catch (err) {
+      console.error("Failed to update trade:", err);
+      alert("Failed to update trade status.");
+    }
+  };
+
+  // Filter based on tab and hide non-pending unless we want history
+  const filteredTrades = trades.filter(trade => {
+    const isIncoming = trade.receiver_id === user?.id;
+    const matchesTab = activeTab === 'incoming' ? isIncoming : !isIncoming;
+    return matchesTab && trade.status === 'pending'; // Only show pending for now
+  });
+
+  // Tiny Rarity Colors (Matches the site aesthetic)
   const getRarityColor = (rarity: string) => {
-    switch (rarity) {
+    switch (rarity?.toUpperCase()) {
       case 'SSR': return 'text-[#E84393] dark:text-[#FF6BB3]';
       case 'SR': return 'text-[#9B59B6] dark:text-[#C175E6]';
       case 'R': return 'text-[#F39C12] dark:text-[#FFE44D]';
       case 'N': return 'text-[var(--text-muted)]';
-      default: return '';
+      default: return 'text-[var(--text-muted)]';
     }
   };
 
   // Helper to render tiny item preview grids
-  const renderItemPreview = (items: Item[]) => (
+  const renderItemPreview = (itemIds: string[]) => (
     <div className="flex flex-wrap gap-2">
-      {items.map(item => (
-        <div key={item.id} className="flex flex-col items-center group">
-          <div className="w-10 h-10 rounded-xl bg-[var(--bg-app)] border border-[var(--border-subtle)] flex items-center justify-center text-lg shadow-sm mb-1">
-            {item.image}
+      {itemIds.map(id => {
+        const item = itemDictionary[id];
+        if (!item) return null;
+        
+        return (
+          <div key={id} className="flex flex-col items-center group">
+            <div className="w-10 h-10 rounded-xl bg-[var(--bg-app)] border border-[var(--border-subtle)] flex items-center justify-center text-lg shadow-sm mb-1 overflow-hidden">
+              {item.image_url ? <img src={item.image_url} alt="item" className="w-full h-full object-cover"/> : <div className="text-xs">?</div>}
+            </div>
+            <span className={`text-[8px] font-black uppercase ${getRarityColor(item.rarity)}`}>{item.rarity || 'N'}</span>
           </div>
-          <span className={`text-[8px] font-black uppercase ${getRarityColor(item.rarity)}`}>{item.rarity}</span>
-        </div>
-      ))}
+        );
+      })}
+    </div>
+  );
+
+  if (loading) return (
+    <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center transition-colors duration-500">
+      <Sparkles className="animate-spin text-[var(--accent)]" size={32} />
     </div>
   );
 
@@ -87,7 +144,7 @@ export default function TradeInboxPage() {
             <ChevronLeft size={20} className="text-[var(--text-muted)]" />
           </button>
           <h1 className="text-xl font-black uppercase tracking-tighter">Trade Inbox</h1>
-          <div className="w-10" /> {/* Spacer */}
+          <div className="w-10" />
         </div>
 
         {/* INCOMING / OUTGOING TABS */}
@@ -101,8 +158,10 @@ export default function TradeInboxPage() {
             }`}
           >
             <Inbox size={14} /> Incoming
-            {/* Notification Dot */}
-            <span className="w-2 h-2 bg-pink-400 rounded-full border border-white dark:border-[#0F0B1E]" />
+            {/* Show dot if there are pending incoming trades */}
+            {trades.some(t => t.receiver_id === user?.id && t.status === 'pending') && (
+              <span className="w-2 h-2 bg-pink-400 rounded-full border border-white dark:border-[#0F0B1E]" />
+            )}
           </button>
           <button 
             onClick={() => setActiveTab('outgoing')}
@@ -126,29 +185,30 @@ export default function TradeInboxPage() {
               <div className="flex justify-between items-center mb-4 pb-3 border-b border-[var(--border-subtle)]">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-[var(--bg-app)] border border-[var(--accent)] flex items-center justify-center font-black text-[var(--accent)] text-xs">
-                    {trade.otherUser.avatar}
+                    {/* Placeholder Avatar */}
+                    ?
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-xs font-black">{trade.otherUser.name}</span>
+                    <span className="text-xs font-black">Another Player</span>
                     <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1">
-                      <Clock size={10} /> {trade.timeAgo}
+                      <Clock size={10} /> Pending
                     </span>
                   </div>
                 </div>
                 <span className="text-[9px] font-black px-2 py-1 rounded-full bg-yellow-400/20 text-yellow-600 dark:text-yellow-400 uppercase tracking-widest">
-                  Pending
+                  Action Required
                 </span>
               </div>
 
               {/* Trade Details (Mini UI) */}
               <div className="flex items-center justify-between gap-2 mb-6">
                 
-                {/* Left Side: What You Get (if incoming) or What You Give (if outgoing) */}
+                {/* Left Side */}
                 <div className="flex-1 bg-[var(--bg-app)]/50 p-3 rounded-2xl border border-[var(--border-subtle)]">
                   <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] block mb-2">
                     {activeTab === 'incoming' ? 'They Offer' : 'You Offer'}
                   </span>
-                  {renderItemPreview(trade.giving)}
+                  {renderItemPreview(trade.offered_items)}
                 </div>
 
                 {/* Exchange Icon */}
@@ -156,12 +216,12 @@ export default function TradeInboxPage() {
                   <ArrowRightLeft size={14} />
                 </div>
 
-                {/* Right Side: What You Give (if incoming) or What You Get (if outgoing) */}
+                {/* Right Side */}
                 <div className="flex-1 bg-[var(--bg-app)]/50 p-3 rounded-2xl border border-[var(--border-subtle)]">
                   <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] block mb-2">
                     {activeTab === 'incoming' ? 'They Request' : 'You Request'}
                   </span>
-                  {renderItemPreview(trade.receiving)}
+                  {renderItemPreview(trade.requested_items)}
                 </div>
 
               </div>
@@ -169,15 +229,24 @@ export default function TradeInboxPage() {
               {/* Action Buttons */}
               {activeTab === 'incoming' ? (
                 <div className="flex gap-3">
-                  <button className="flex-1 py-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-main)] rounded-xl font-black text-[10px] uppercase hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-colors flex justify-center items-center gap-1.5">
+                  <button 
+                    onClick={() => updateTradeStatus(trade.id, 'declined')}
+                    className="flex-1 py-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-main)] rounded-xl font-black text-[10px] uppercase hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-colors flex justify-center items-center gap-1.5"
+                  >
                     <XCircle size={14} /> Decline
                   </button>
-                  <button className="flex-1 py-3 bg-[var(--accent-green)] text-[#1A1A1A] rounded-xl font-black text-[10px] uppercase shadow-lg shadow-[var(--accent-green)]/20 hover:opacity-90 transition-opacity flex justify-center items-center gap-1.5">
+                  <button 
+                    onClick={() => updateTradeStatus(trade.id, 'accepted')}
+                    className="flex-1 py-3 bg-[var(--accent-green)] text-[#1A1A1A] rounded-xl font-black text-[10px] uppercase shadow-lg shadow-[var(--accent-green)]/20 hover:opacity-90 transition-opacity flex justify-center items-center gap-1.5"
+                  >
                     <CheckCircle2 size={14} /> Accept
                   </button>
                 </div>
               ) : (
-                <button className="w-full py-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-main)] rounded-xl font-black text-[10px] uppercase hover:bg-[var(--bg-secondary)] transition-colors flex justify-center items-center gap-1.5">
+                <button 
+                  onClick={() => updateTradeStatus(trade.id, 'cancelled')}
+                  className="w-full py-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-main)] rounded-xl font-black text-[10px] uppercase hover:bg-[var(--bg-secondary)] transition-colors flex justify-center items-center gap-1.5"
+                >
                   <XCircle size={14} /> Cancel Request
                 </button>
               )}
@@ -189,7 +258,7 @@ export default function TradeInboxPage() {
           <div className="text-center py-20 flex flex-col items-center justify-center">
             <img src="/kumo-sad.png" alt="Empty" className="w-24 h-24 mb-4 drop-shadow-lg opacity-60 grayscale" />
             <p className="font-black uppercase tracking-widest text-[10px] text-[var(--text-muted)]">
-              No {activeTab} trades found.
+              No pending {activeTab} trades.
             </p>
           </div>
         )}
