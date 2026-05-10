@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  Sparkles, Package, Heart, ChevronRight, 
-  Plus, Search, Moon, Sun, Bell 
+  Sparkles, Package, Heart, ChevronRight 
 } from 'lucide-react';
 
 export default function Home() {
@@ -23,7 +22,6 @@ export default function Home() {
       if (!user) return;
       
       try {
-        // Fetch user profile
         const { data: profile } = await supabase
           .from('traders')
           .select('username')
@@ -31,7 +29,6 @@ export default function Home() {
           .single();
         if (profile) setUsername(profile.username);
 
-        // Fetch recent items from the global catalog
         const { data: itemData } = await supabase
           .from('items')
           .select('*')
@@ -68,7 +65,6 @@ export default function Home() {
   return (
     <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500">
       
-      {/* HEADER SECTION */}
       <header className="flex justify-between items-start mb-12 relative z-10">
         <div className="animate-in fade-in slide-in-from-left-4 duration-700">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-pink)] mb-1 opacity-80">
@@ -79,7 +75,6 @@ export default function Home() {
           </h1>
         </div>
 
-        {/* MASCOT */}
         <div className="relative group cursor-pointer" onClick={() => navigate('/profile')}>
            <img 
              src={kumoAsset} 
@@ -96,7 +91,6 @@ export default function Home() {
 
       <main className="space-y-8">
         
-        {/* TIER STATUS CARD */}
         <div className="glass-panel p-8 relative overflow-hidden group">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-[var(--accent)]/10 rounded-full blur-2xl group-hover:bg-[var(--accent)]/20 transition-colors" />
           <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] block mb-3">Current Tier</span>
@@ -108,7 +102,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* QUICK ACTIONS */}
         <div className="grid grid-cols-2 gap-4">
           <button onClick={() => navigate('/wardrobe')} className="glass-panel p-6 flex flex-col items-center gap-4 hover:bg-[var(--bg-card)] transition-all">
             <div className="w-12 h-12 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--accent-sky)]">
@@ -125,7 +118,6 @@ export default function Home() {
           </button>
         </div>
 
-        {/* RECENT ORBIT SECTION */}
         <section>
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-black tracking-tight">In Orbit Now</h3>
@@ -154,7 +146,6 @@ export default function Home() {
             </div>
           )}
         </section>
-
       </main>
     </div>
   );
