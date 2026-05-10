@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Inbox, Send, CheckCircle2, XCircle, ArrowRightLeft, Clock } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
 
 // --- MOCK DATA ---
 type Item = { id: number, name: string, rarity: string, image: string };
@@ -50,7 +49,6 @@ const MOCK_TRADES: TradeOffer[] = [
 
 export default function TradeInboxPage() {
   const navigate = useNavigate();
-  const { resolvedTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming');
 
   const filteredTrades = MOCK_TRADES.filter(trade => trade.type === activeTab);
