@@ -23,7 +23,8 @@ export default function CatalogPage() {
   const [catalogItems, setCatalogItems] = useState<DbItem[]>([]);
   const [collectionTabs, setCollectionTabs] = useState<string[]>(["ALL"]);
   
-  const [wishlist, setWishlist] = useState<string[]>([]); // Array of item IDs
+  // Maps item_id to heart intensity (1-4)
+  const [wishlist, setWishlist] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [warning, setWarning] = useState<string | null>(null);
 
@@ -40,7 +41,6 @@ export default function CatalogPage() {
       // 2. Extract unique collection names for the filter tabs using V3 architecture
       const uniqueCollections = new Set<string>();
       itemsData?.forEach(item => {
-        // Fallback to the old collection logic if V3 is null, otherwise use V3
         const tabName = item.collection_type || item.collections?.name;
         if (tabName) uniqueCollections.add(tabName);
       });
@@ -48,15 +48,21 @@ export default function CatalogPage() {
       setCollectionTabs(["ALL", ...Array.from(uniqueCollections)]);
       setCatalogItems((itemsData as unknown as DbItem[]) || []);
 
-      // 3. Fetch current user's wishlist
+      // 3. Fetch current user's wishlist with intensity
       if (user) {
         const { data: wishData, error: wishError } = await supabase
           .from('wishlists')
-          .select('item_id')
+          .select('item_id, intensity')
           .eq('trader_id', user.id);
           
         if (wishError) throw wishError;
-        if (wishData) setWishlist(wishData.map(w => w.item_id));
+        if (wishData) {
+          const wishRecord: Record<string, number> = {};
+          wishData.forEach(w => {
+            wishRecord[w.item_id] = w.intensity || 1;
+          });
+          setWishlist(wishRecord);
+        }
       }
     } catch (error) {
       console.error("Error fetching catalog:", error);
@@ -69,33 +75,29 @@ export default function CatalogPage() {
     fetchCatalogData();
   }, [fetchCatalogData]);
 
-  // Handle the 3-Heart Wishlist Toggle
-  const toggleWishlist = async (itemId: string) => {
+  // Handle cycling through 1-4 hearts
+  const cycleWishlist = async (itemId: string) => {
     if (!user) return;
-    setWarning(null);
+    
+    const currentLevel = wishlist[itemId] || 0;
+    const nextLevel = currentLevel === 4 ? 0 : currentLevel + 1;
 
-    const isWished = wishlist.includes(itemId);
-
-    if (isWished) {
-      // Remove from wishlist
-      setWishlist(prev => prev.filter(id => id !== itemId));
-      await supabase
-        .from('wishlists')
-        .delete()
-        .match({ trader_id: user.id, item_id: itemId });
+    if (nextLevel === 0) {
+      // Remove from wishlist completely
+      setWishlist(prev => {
+        const newState = { ...prev };
+        delete newState[itemId];
+        return newState;
+      });
+      await supabase.from('wishlists').delete().match({ trader_id: user.id, item_id: itemId });
     } else {
-      // Enforce 3-Heart Limit
-      if (wishlist.length >= 3) {
-        setWarning("Your 3-Heart Wishlist is full! Un-heart an item first.");
-        setTimeout(() => setWarning(null), 3000);
-        return;
-      }
-
-      // Add to wishlist
-      setWishlist(prev => [...prev, itemId]);
-      await supabase
-        .from('wishlists')
-        .insert([{ trader_id: user.id, item_id: itemId }]);
+      // Add or Update wishlist level
+      setWishlist(prev => ({ ...prev, [itemId]: nextLevel }));
+      await supabase.from('wishlists').upsert({ 
+        trader_id: user.id, 
+        item_id: itemId, 
+        intensity: nextLevel 
+      }, { onConflict: 'trader_id, item_id' });
     }
   };
 
@@ -129,6 +131,8 @@ export default function CatalogPage() {
     return matchesSearch && matchesTab;
   });
 
+  const totalWishlistedItems = Object.keys(wishlist).length;
+
   if (loading) return (
     <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center transition-colors duration-500">
       <Sparkles className="animate-spin text-[var(--accent)]" size={32} />
@@ -138,7 +142,7 @@ export default function CatalogPage() {
   return (
     <div className="min-h-screen pb-32 px-6 pt-12 bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500 relative">
       
-      {/* Top Warning Toast for 3-Heart Limit */}
+      {/* Top Warning Toast for UI Feedback */}
       {warning && (
         <div className="fixed top-4 left-6 right-6 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
           <div className="bg-red-500/90 backdrop-blur-md text-white p-4 rounded-2xl shadow-xl flex items-center gap-3 font-bold text-xs uppercase tracking-widest border border-red-400">
@@ -154,11 +158,11 @@ export default function CatalogPage() {
             Explore Orbit <Sparkles size={18} className="text-[var(--accent)]" />
           </h1>
           
-          {/* 3-Heart Counter */}
+          {/* Infinite Wishlist Counter */}
           <div className="glass-panel px-3 py-1.5 flex items-center gap-1.5 rounded-full border-[var(--border-subtle)]">
-            <Heart size={12} className={wishlist.length === 3 ? "text-[var(--accent-pink)] fill-[var(--accent-pink)]" : "text-[var(--text-muted)]"} />
-            <span className={`text-[10px] font-black tracking-widest ${wishlist.length === 3 ? "text-[var(--accent-pink)]" : "text-[var(--text-muted)]"}`}>
-              {wishlist.length}/3
+            <Heart size={12} className={totalWishlistedItems > 0 ? "text-[var(--accent-pink)] fill-[var(--accent-pink)]" : "text-[var(--text-muted)]"} />
+            <span className={`text-[10px] font-black tracking-widest ${totalWishlistedItems > 0 ? "text-[var(--accent-pink)]" : "text-[var(--text-muted)]"}`}>
+              {totalWishlistedItems} SAVED
             </span>
           </div>
         </div>
@@ -201,7 +205,8 @@ export default function CatalogPage() {
         {filteredItems.length > 0 ? (
           <div className="grid grid-cols-2 gap-4 relative z-10">
             {filteredItems.map((item) => {
-              const isWished = wishlist.includes(item.id);
+              const heartLevel = wishlist[item.id] || 0;
+              
               return (
                 <div 
                   key={item.id} 
@@ -213,16 +218,26 @@ export default function CatalogPage() {
 
                   {/* Interactive Wishlist Button */}
                   <button 
-                    onClick={() => toggleWishlist(item.id)}
-                    className="absolute top-3 right-3 z-10 p-1 hover:scale-110 transition-transform"
+                    onClick={() => cycleWishlist(item.id)}
+                    className="absolute top-3 right-3 z-10 p-1 hover:scale-110 transition-transform flex gap-0.5"
                   >
-                    <Heart 
-                      size={18} 
-                      className={isWished 
-                        ? "text-[var(--accent-pink)] fill-[var(--accent-pink)] drop-shadow-[0_0_8px_rgba(255,184,208,0.8)]" 
-                        : "text-[var(--border-subtle)]"
-                      } 
-                    />
+                    {/* Render 1 to 4 hearts based on intensity */}
+                    {heartLevel > 0 ? (
+                      Array.from({ length: heartLevel }).map((_, i) => (
+                        <Heart 
+                          key={i}
+                          size={14} 
+                          className={`${
+                            heartLevel === 4 ? "text-[var(--accent-pink)] fill-[var(--accent-pink)] drop-shadow-[0_0_8px_rgba(255,184,208,0.8)]" : 
+                            heartLevel === 3 ? "text-orange-400 fill-orange-400" :
+                            heartLevel === 2 ? "text-yellow-400 fill-yellow-400" :
+                            "text-green-400 fill-green-400"
+                          }`} 
+                        />
+                      ))
+                    ) : (
+                      <Heart size={18} className="text-[var(--border-subtle)]" />
+                    )}
                   </button>
 
                   <div className="w-full aspect-square rounded-2xl bg-[var(--bg-app)]/50 border border-[var(--border-subtle)] flex items-center justify-center mb-3 mt-6 overflow-hidden group-hover:scale-105 transition-transform duration-300">
