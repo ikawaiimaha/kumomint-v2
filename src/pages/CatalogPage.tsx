@@ -11,6 +11,7 @@ interface DbItem {
   image_url: string;
   collection_id: string;
   collections?: { name: string };
+  collection_type?: string; // Added for V3 compatibility
 }
 
 export default function CatalogPage() {
@@ -36,10 +37,12 @@ export default function CatalogPage() {
       
       if (itemsError) throw itemsError;
 
-      // 2. Extract unique collection names for the filter tabs
+      // 2. Extract unique collection names for the filter tabs using V3 architecture
       const uniqueCollections = new Set<string>();
       itemsData?.forEach(item => {
-        if (item.collections?.name) uniqueCollections.add(item.collections.name);
+        // Fallback to the old collection logic if V3 is null, otherwise use V3
+        const tabName = item.collection_type || item.collections?.name;
+        if (tabName) uniqueCollections.add(tabName);
       });
       
       setCollectionTabs(["ALL", ...Array.from(uniqueCollections)]);
@@ -118,10 +121,11 @@ export default function CatalogPage() {
     }
   };
 
-  // Filter Logic
+  // Filter Logic updated to match V3 tabs
   const filteredItems = catalogItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTab = activeTab === "ALL" || item.collections?.name?.toUpperCase() === activeTab.toUpperCase();
+    const itemTabName = item.collection_type || item.collections?.name;
+    const matchesTab = activeTab === "ALL" || itemTabName?.toUpperCase() === activeTab.toUpperCase();
     return matchesSearch && matchesTab;
   });
 
