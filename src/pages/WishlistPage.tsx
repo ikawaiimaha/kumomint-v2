@@ -15,11 +15,14 @@ interface Item {
   id: string;
   name: string;
   image_url: string;
+  rarity: string;
+  collection_type: string;
 }
 
 interface WishlistEntry {
   id: string;
   item_id: string;
+  intensity: number; // Added for the 1-4 heart system
   items: Item;
 }
 
@@ -28,18 +31,23 @@ export default function WishlistPage() {
   const navigate = useNavigate();
   
   const [wishlist, setWishlist] = useState<WishlistEntry[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
   const fetchWishlist = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     
-    const { data } = await supabase
-      .from('wishlist')
+    // Fetch from 'wishlists' table (plural) to match our v3 migration
+    const { data, error } = await supabase
+      .from('wishlists')
       .select('*, items(*)')
-      .eq('trader_id', user.id);
+      .eq('trader_id', user.id)
+      .order('intensity', { ascending: false }); // DREAMY! items at the top
     
-    if (data) {
+    if (error) {
+      console.error("Error loading wishlist:", error);
+    } else if (data) {
       setWishlist(data as unknown as WishlistEntry[]);
     }
     setLoading(false);
@@ -52,6 +60,21 @@ export default function WishlistPage() {
       setLoading(false);
     }
   }, [user, authLoading, fetchWishlist]);
+
+  const getHeartLabel = (level: number) => {
+    switch (level) {
+      case 1: return "Nice";
+      case 2: return "Want";
+      case 3: return "Need";
+      case 4: return "DREAMY!";
+      default: return "";
+    }
+  };
+
+  // Filter based on search input
+  const filteredWishlist = wishlist.filter(entry => 
+    entry.items?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (authLoading || loading) return (
     <div className="min-h-screen bg-[#FDF8F7] dark:bg-[#1A0B2E] flex items-center justify-center">
@@ -87,21 +110,45 @@ export default function WishlistPage() {
           <input 
             type="text"
             placeholder="Search wishlist..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-12 pr-4 py-4 bg-[#F8F9FB] dark:bg-[#1A0B2E] rounded-2xl text-sm font-bold border-none dark:text-[#E0D7FF]"
           />
         </div>
       </header>
 
       <main className="px-6 mt-6">
-        {wishlist.length > 0 ? (
+        {filteredWishlist.length > 0 ? (
           <div className="grid grid-cols-2 gap-4">
-            {wishlist.map((entry) => (
-              <div key={entry.id} className="bg-white dark:bg-[#2D1B4E] p-3 rounded-[32px] border border-[#F0E6E4] dark:border-[#483475] shadow-sm">
-                <div className="aspect-square bg-[#F8F9FB] dark:bg-[#1A0B2E] rounded-2xl mb-3 flex items-center justify-center">
+            {filteredWishlist.map((entry) => (
+              <div key={entry.id} className="bg-white dark:bg-[#2D1B4E] p-3 rounded-[32px] border border-[#F0E6E4] dark:border-[#483475] shadow-sm relative group">
+                
+                {/* Rarity & Heart Level Badge */}
+                <div className="flex justify-between items-start mb-2 px-1">
+                   <span className="text-[8px] font-black uppercase text-[#A389F4] tracking-widest">
+                     {entry.items?.rarity || 'N'}
+                   </span>
+                   <div className="flex flex-col items-end">
+                      <div className="flex gap-0.5">
+                        {Array.from({ length: entry.intensity }).map((_, i) => (
+                          <Heart key={i} size={10} className="text-[#FF6BB3] fill-[#FF6BB3]" />
+                        ))}
+                      </div>
+                      <span className="text-[6px] font-black uppercase text-[#FF6BB3] tracking-tighter">
+                        {getHeartLabel(entry.intensity)}
+                      </span>
+                   </div>
+                </div>
+
+                <div className="aspect-square bg-[#F8F9FB] dark:bg-[#1A0B2E] rounded-2xl mb-3 flex items-center justify-center overflow-hidden">
                   <img src={entry.items?.image_url} className="w-full h-full object-contain p-2" alt="" />
                 </div>
+                
                 <div className="px-1 text-center">
-                  <h3 className="text-[11px] font-bold text-[#2E2A28] dark:text-[#E0D7FF] truncate">{entry.items?.name}</h3>
+                  <h3 className="text-[10px] font-black text-[#2E2A28] dark:text-[#E0D7FF] line-clamp-1">{entry.items?.name}</h3>
+                  <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                    {entry.items?.collection_type || "Legacy Bag"}
+                  </p>
                 </div>
               </div>
             ))}
