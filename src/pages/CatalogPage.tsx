@@ -15,12 +15,11 @@ interface DbItem {
   sub_category?: string;
 }
 
-// 🌌 NEBULA COLOR PALETTE (From your uploaded image)
 const HEART_CONFIG = {
-  1: { label: "Nice", color: "#00F3FF", glow: "0 0 12px #00F3FF" },      // Aqua Neon
-  2: { label: "Want", color: "#9D00FF", glow: "0 0 15px #9D00FF" },      // Bright Purple
-  3: { label: "Need", color: "#FFD600", glow: "0 0 18px #FFD600" },      // Star Gold
-  4: { label: "DREAMY!", color: "#FF007A", glow: "0 0 30px #FF007A" },   // Intense Pink
+  1: { color: "#00F3FF", glow: "0 0 12px #00F3FF" },      // Aqua Neon
+  2: { color: "#9D00FF", glow: "0 0 15px #9D00FF" },      // Bright Purple
+  3: { color: "#FFD600", glow: "0 0 18px #FFD600" },      // Star Gold
+  4: { color: "#FF007A", glow: "0 0 30px #FF007A" },      // Intense Pink
 };
 
 export default function CatalogPage() {
@@ -128,7 +127,6 @@ export default function CatalogPage() {
   return (
     <div className="min-h-screen pb-32 px-6 pt-12 bg-[#0C0F21] text-[#E0D7FF] font-sans transition-all duration-700">
       
-      {/* 🌌 Force Dark Style Override */}
       <style>{`
         body { background-color: #0C0F21 !important; color: #E0D7FF !important; }
         .glass-card { background: rgba(26, 11, 46, 0.8) !important; border: 1px solid #2D1B4E !important; }
@@ -144,7 +142,6 @@ export default function CatalogPage() {
           </div>
         </div>
 
-        {/* Search */}
         <div className="flex items-center p-4 gap-3 mb-6 bg-[#1A0B2E]/90 rounded-2xl border border-[#483475] shadow-2xl">
           <Search size={20} className="text-[#00F3FF]" />
           <input 
@@ -156,7 +153,6 @@ export default function CatalogPage() {
           />
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-6 px-6">
           {collectionTabs.map(tab => (
             <button
@@ -183,12 +179,10 @@ export default function CatalogPage() {
                  className={`glass-card p-4 rounded-[32px] flex flex-col items-center relative transition-all duration-300 ${intensity === 4 ? 'shadow-[0_0_25px_rgba(255,0,122,0.3)] border-[#FF007A]' : ''}`}
             >
               
-              {/* Rarity */}
               <div className={`absolute top-3 left-4 text-[9px] font-black uppercase tracking-widest ${getRarityColor(item.rarity)}`}>
                 {item.rarity || 'N'}
               </div>
 
-              {/* 💖 NEON HEART RATING SYSTEM */}
               <div className="absolute top-2 right-2 flex flex-col items-end">
                 <button 
                   onClick={() => cycleWishlist(item.id)}
@@ -209,17 +203,8 @@ export default function CatalogPage() {
                     <Heart size={16} className="text-[#2D1B4E]" />
                   )}
                 </button>
-                {intensity > 0 && (
-                  <span 
-                    className="text-[7px] font-black uppercase tracking-tighter mr-1 italic"
-                    style={{ color: config.color, textShadow: intensity === 4 ? config.glow : 'none' }}
-                  >
-                    {config.label}
-                  </span>
-                )}
               </div>
 
-              {/* Item Image */}
               <div className="w-full aspect-square rounded-2xl bg-[#080808] border border-[#2D1B4E] flex items-center justify-center mb-3 mt-4 overflow-hidden group">
                 {item.image_url ? (
                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-125" />
@@ -228,12 +213,10 @@ export default function CatalogPage() {
                 )}
               </div>
 
-              {/* Item Name */}
               <h3 className="font-black text-[10px] text-[#FFF9E3] text-center h-8 flex items-center line-clamp-2 mb-2 leading-tight px-1">
                 {item.name}
               </h3>
 
-              {/* Clickable Bag Link */}
               <button 
                 onClick={() => setActiveTab(bagName)}
                 className="w-full py-2 mt-auto rounded-xl bg-[#0C0F21] border border-[#483475] hover:bg-[#9D00FF] hover:text-white text-[8px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5"
@@ -242,7 +225,6 @@ export default function CatalogPage() {
                 <span className="truncate max-w-[70px]">{bagName}</span>
               </button>
 
-              {/* Category Tag */}
               {item.main_category && (
                 <div className="mt-2 flex items-center gap-1.5 text-[7px] text-[#00F3FF]/60 font-bold uppercase tracking-widest">
                   <Tag size={8} />
