@@ -1,4 +1,26 @@
-/* COSMIC NIGHT THEME VARIABLES */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-app: #FDF8F7;
+  --bg-card: #FFFFFF;
+  --text-main: #2E2A28;
+  --text-muted: #8E8A88;
+  --accent: #7ED7C1;
+  --border-subtle: #F0E6E4;
+}
+
+.dark {
+  --bg-app: #1A0B2E;
+  --bg-card: #2D1B4E;
+  --text-main: #FFF9E3;
+  --text-muted: #A389F4;
+  --accent: #A389F4;
+  --border-subtle: #483475;
+}
+
+/* 🌌 COSMIC NIGHT THEME (Velvet Vibes Palette) */
 .cosmic-night {
   --bg-app: #0C0F21;            /* Deep Space Blue */
   --bg-card: #1A0B2E;           /* Deep Nebula Purple */
@@ -8,44 +30,40 @@
   --accent-blue: #80c0e4;       /* From your palette: Sky Blue */
   --text-main: #FFF9E3;         /* Star White */
   --text-muted: #725ba3;        /* From your palette: Muted Purple */
-  --border-subtle: #483475;     /* Darker Nebula border */
-  --shadow-glow: rgba(214, 114, 161, 0.3);
+  --border-subtle: #483475;
 }
 
-/* Platform-wide Background Effect */
-.cosmic-night body {
+body {
+  @apply transition-colors duration-1000;
   background-color: var(--bg-app);
-  background-image: 
-    radial-gradient(circle at 20% 30%, rgba(114, 91, 163, 0.15) 0%, transparent 40%),
-    radial-gradient(circle at 80% 70%, rgba(214, 114, 161, 0.1) 0%, transparent 40%);
-  background-attachment: fixed;
   color: var(--text-main);
+  min-height: 100vh;
 }
 
-/* Glass Panels for Cosmic Night */
-.cosmic-night .glass-panel {
-  background: rgba(26, 11, 46, 0.7) !important;
-  backdrop-filter: blur(12px);
-  border: 1px solid var(--border-subtle) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
-
-/* Optional: Shooting Star Animation */
+/* ☄️ Shooting Star Animation for Cosmic Night */
 @keyframes shooting-star {
-  0% { transform: translateX(0) translateY(0) rotate(-45deg); opacity: 1; }
-  70% { opacity: 1; }
-  100% { transform: translateX(-500px) translateY(500px) rotate(-45deg); opacity: 0; }
+  0% { transform: translateX(0) translateY(0) rotate(-45deg); opacity: 0; }
+  10% { opacity: 1; }
+  30% { transform: translateX(-500px) translateY(500px) rotate(-45deg); opacity: 0; }
+  100% { opacity: 0; }
 }
 
 .cosmic-night::after {
   content: "";
   position: fixed;
-  top: -10%;
-  right: -10%;
+  top: -50px;
+  right: -50px;
   width: 2px;
-  height: 100px;
+  height: 80px;
   background: linear-gradient(to bottom, var(--accent-blue), transparent);
-  animation: shooting-star 8s infinite ease-in;
+  animation: shooting-star 12s infinite ease-in;
   pointer-events: none;
-  z-index: 0;
+  z-index: 50;
+}
+
+/* Universal Card Styling */
+.glass-panel {
+  @apply rounded-[32px] border transition-all duration-300;
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
 }
