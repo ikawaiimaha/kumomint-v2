@@ -6,18 +6,24 @@ interface ThemeContextType {
   theme: Theme;
   resolvedTheme: Theme;
   setTheme: (theme: Theme) => void;
+  toggleTheme: () => void; // Added back to fix ProfilePage error
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark'); // Default
+  const [theme, setTheme] = useState<Theme>('dark');
   const [resolvedTheme, setResolvedTheme] = useState<Theme>('dark');
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
+  };
 
   useEffect(() => {
     const updateTheme = () => {
       const hour = new Date().getHours();
-      const isNightTime = hour >= 18 || hour < 6; // 6 PM to 6 AM
+      // Automatic Cosmic Night between 6 PM and 6 AM
+      const isNightTime = hour >= 18 || hour < 6;
 
       if (isNightTime) {
         setResolvedTheme('cosmic-night');
@@ -31,12 +37,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     };
 
     updateTheme();
-    const interval = setInterval(updateTheme, 60000); // Check every minute
+    const interval = setInterval(updateTheme, 60000);
     return () => clearInterval(interval);
   }, [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );
