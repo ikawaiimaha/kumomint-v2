@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Heart, Sparkles, SlidersHorizontal, Package, AlertCircle } from 'lucide-react';
+import { Search, Heart, Sparkles, SlidersHorizontal, Package } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -26,6 +26,7 @@ export default function CatalogPage() {
   // Maps item_id to heart intensity (1-4)
   const [wishlist, setWishlist] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+
   // Fetch items and wishlist
   const fetchCatalogData = useCallback(async () => {
     try {
@@ -39,6 +40,7 @@ export default function CatalogPage() {
       // 2. Extract unique collection names for the filter tabs using V3 architecture
       const uniqueCollections = new Set<string>();
       itemsData?.forEach(item => {
+        // Fallback to the old collection logic if V3 is null, otherwise use V3
         const tabName = item.collection_type || item.collections?.name;
         if (tabName) uniqueCollections.add(tabName);
       });
@@ -140,16 +142,6 @@ export default function CatalogPage() {
   return (
     <div className="min-h-screen pb-32 px-6 pt-12 bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500 relative">
       
-      {/* Top Warning Toast for UI Feedback */}
-      {warning && (
-        <div className="fixed top-4 left-6 right-6 z-50 animate-in slide-in-from-top-4 fade-in duration-300">
-          <div className="bg-red-500/90 backdrop-blur-md text-white p-4 rounded-2xl shadow-xl flex items-center gap-3 font-bold text-xs uppercase tracking-widest border border-red-400">
-            <AlertCircle size={18} />
-            {warning}
-          </div>
-        </div>
-      )}
-
       <header className="mb-6 relative z-10">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
