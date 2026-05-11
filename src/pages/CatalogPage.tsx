@@ -11,7 +11,7 @@ interface DbItem {
   image_url: string;
   collection_id: string;
   collections?: { name: string };
-  collection_type?: string; // Added for V3 compatibility
+  collection_type?: string; 
 }
 
 export default function CatalogPage() {
@@ -37,10 +37,9 @@ export default function CatalogPage() {
       
       if (itemsError) throw itemsError;
 
-      // 2. Extract unique collection names for the filter tabs using V3 architecture
+      // 2. Extract unique collection names for the filter tabs
       const uniqueCollections = new Set<string>();
       itemsData?.forEach(item => {
-        // Fallback to the old collection logic if V3 is null, otherwise use V3
         const tabName = item.collection_type || item.collections?.name;
         if (tabName) uniqueCollections.add(tabName);
       });
@@ -48,7 +47,7 @@ export default function CatalogPage() {
       setCollectionTabs(["ALL", ...Array.from(uniqueCollections)]);
       setCatalogItems((itemsData as unknown as DbItem[]) || []);
 
-      // 3. Fetch current user's wishlist with intensity
+      // 3. Fetch current user's saved hearts
       if (user) {
         const { data: wishData, error: wishError } = await supabase
           .from('wishlists')
@@ -56,6 +55,7 @@ export default function CatalogPage() {
           .eq('trader_id', user.id);
           
         if (wishError) throw wishError;
+        
         if (wishData) {
           const wishRecord: Record<string, number> = {};
           wishData.forEach(w => {
@@ -65,7 +65,7 @@ export default function CatalogPage() {
         }
       }
     } catch (error) {
-      console.error("Error fetching catalog:", error);
+      console.error("Error loading page data:", error);
     } finally {
       setLoading(false);
     }
@@ -77,27 +77,38 @@ export default function CatalogPage() {
 
   // Handle cycling through 1-4 hearts
   const cycleWishlist = async (itemId: string) => {
-    if (!user) return;
+    if (!user) {
+        console.error("You must be logged in to save items!");
+        return;
+    }
     
     const currentLevel = wishlist[itemId] || 0;
     const nextLevel = currentLevel === 4 ? 0 : currentLevel + 1;
 
-    if (nextLevel === 0) {
-      // Remove from wishlist completely
-      setWishlist(prev => {
-        const newState = { ...prev };
-        delete newState[itemId];
-        return newState;
-      });
-      await supabase.from('wishlists').delete().match({ trader_id: user.id, item_id: itemId });
-    } else {
-      // Add or Update wishlist level
-      setWishlist(prev => ({ ...prev, [itemId]: nextLevel }));
-      await supabase.from('wishlists').upsert({ 
-        trader_id: user.id, 
-        item_id: itemId, 
-        intensity: nextLevel 
-      }, { onConflict: 'trader_id, item_id' });
+    try {
+        if (nextLevel === 0) {
+          // Remove from wishlist
+          setWishlist(prev => {
+            const newState = { ...prev };
+            delete newState[itemId];
+            return newState;
+          });
+          const { error } = await supabase.from('wishlists').delete().match({ trader_id: user.id, item_id: itemId });
+          if (error) throw error;
+        } else {
+          // Add or Update heart level
+          setWishlist(prev => ({ ...prev, [itemId]: nextLevel }));
+          const { error } = await supabase.from('wishlists').upsert({ 
+            trader_id: user.id, 
+            item_id: itemId, 
+            intensity: nextLevel 
+          }, { onConflict: 'trader_id, item_id' });
+          if (error) throw error;
+        }
+    } catch (err) {
+        console.error("DATABASE ERROR: Wishlist update failed. Check your Supabase Policies.", err);
+        // Refresh the local data to match what is actually in the database
+        fetchCatalogData(); 
     }
   };
 
@@ -123,7 +134,7 @@ export default function CatalogPage() {
     }
   };
 
-  // Filter Logic updated to match V3 tabs
+  // Filter Logic
   const filteredItems = catalogItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const itemTabName = item.collection_type || item.collections?.name;
@@ -131,16 +142,16 @@ export default function CatalogPage() {
     return matchesSearch && matchesTab;
   });
 
-  const totalWishlistedItems = Object.keys(wishlist).length;
+  const totalSaved = Object.keys(wishlist).length;
 
   if (loading) return (
-    <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center transition-colors duration-500">
+    <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
       <Sparkles className="animate-spin text-[var(--accent)]" size={32} />
     </div>
   );
 
   return (
-    <div className="min-h-screen pb-32 px-6 pt-12 bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500 relative">
+    <div className="min-h-screen pb-32 px-6 pt-12 bg-[var(--bg-app)] text-[var(--text-main)] relative">
       
       <header className="mb-6 relative z-10">
         <div className="flex justify-between items-center mb-6">
@@ -148,40 +159,37 @@ export default function CatalogPage() {
             Explore Orbit <Sparkles size={18} className="text-[var(--accent)]" />
           </h1>
           
-          {/* Infinite Wishlist Counter */}
           <div className="glass-panel px-3 py-1.5 flex items-center gap-1.5 rounded-full border-[var(--border-subtle)]">
-            <Heart size={12} className={totalWishlistedItems > 0 ? "text-[var(--accent-pink)] fill-[var(--accent-pink)]" : "text-[var(--text-muted)]"} />
-            <span className={`text-[10px] font-black tracking-widest ${totalWishlistedItems > 0 ? "text-[var(--accent-pink)]" : "text-[var(--text-muted)]"}`}>
-              {totalWishlistedItems} SAVED
+            <Heart size={12} className={totalSaved > 0 ? "text-[var(--accent-pink)] fill-[var(--accent-pink)]" : "text-[var(--text-muted)]"} />
+            <span className={`text-[10px] font-black tracking-widest ${totalSaved > 0 ? "text-[var(--accent-pink)]" : "text-[var(--text-muted)]"}`}>
+              {totalSaved} SAVED
             </span>
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="glass-panel flex items-center p-4 gap-3 shadow-lg shadow-[var(--shadow-card)] mb-6">
-          <Search size={20} className="text-[var(--text-muted)] shrink-0" />
+        <div className="glass-panel flex items-center p-4 gap-3 shadow-lg mb-6">
+          <Search size={20} className="text-[var(--text-muted)]" />
           <input 
             type="text"
             placeholder="Search the galaxy..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-transparent border-none outline-none flex-1 font-bold text-sm placeholder:text-[var(--text-muted)] w-full text-[var(--text-main)]"
+            className="bg-transparent border-none outline-none flex-1 font-bold text-sm w-full text-[var(--text-main)]"
           />
-          <button className="p-2 bg-[var(--bg-app)]/50 rounded-xl text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors shrink-0">
+          <button className="p-2 text-[var(--text-muted)] hover:text-[var(--accent)]">
             <SlidersHorizontal size={18} />
           </button>
         </div>
 
-        {/* Horizontal Scrolling Filter Tabs */}
         <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-6 px-6">
           {collectionTabs.map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`whitespace-nowrap px-5 py-2.5 rounded-full font-black text-[10px] tracking-widest uppercase transition-all duration-300 ${
+              className={`whitespace-nowrap px-5 py-2.5 rounded-full font-black text-[10px] tracking-widest uppercase transition-all ${
                 activeTab === tab 
                   ? 'bg-[var(--accent)] text-white shadow-[0_0_15px_rgba(163,137,244,0.4)]' 
-                  : 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]'
+                  : 'bg-[var(--bg-card)] text-[var(--text-muted)] border border-[var(--border-subtle)]'
               }`}
             >
               {tab}
@@ -190,7 +198,6 @@ export default function CatalogPage() {
         </div>
       </header>
 
-      {/* Catalog Grid */}
       <main>
         {filteredItems.length > 0 ? (
           <div className="grid grid-cols-2 gap-4 relative z-10">
@@ -200,18 +207,16 @@ export default function CatalogPage() {
               return (
                 <div 
                   key={item.id} 
-                  className={`glass-panel p-4 flex flex-col items-center text-center relative group transition-all duration-300 ${getRarityStyles(item.rarity)}`}
+                  className={`glass-panel p-4 flex flex-col items-center text-center relative group transition-all ${getRarityStyles(item.rarity)}`}
                 >
                   <div className={`absolute top-3 left-3 text-[10px] font-black uppercase tracking-widest ${getRarityColor(item.rarity)}`}>
                     {item.rarity || 'N'}
                   </div>
 
-                  {/* Interactive Wishlist Button */}
                   <button 
                     onClick={() => cycleWishlist(item.id)}
                     className="absolute top-3 right-3 z-10 p-1 hover:scale-110 transition-transform flex gap-0.5"
                   >
-                    {/* Render 1 to 4 hearts based on intensity */}
                     {heartLevel > 0 ? (
                       Array.from({ length: heartLevel }).map((_, i) => (
                         <Heart 
@@ -250,7 +255,6 @@ export default function CatalogPage() {
           </div>
         )}
       </main>
-
     </div>
   );
 }
