@@ -1,53 +1,46 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Theme = 'light' | 'dark';
+type Theme = 'light' | 'dark' | 'cosmic-night';
 
 interface ThemeContextType {
   theme: Theme;
-  toggleTheme: () => void;
   resolvedTheme: Theme;
+  setTheme: (theme: Theme) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<Theme>('light');
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<Theme>('dark'); // Default
+  const [resolvedTheme, setResolvedTheme] = useState<Theme>('dark');
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('kumomint-theme') as Theme | null;
-    
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else {
-      // Auto-Clock logic
+    const updateTheme = () => {
       const hour = new Date().getHours();
-      const isNight = hour >= 18 || hour < 6;
-      setTheme(isNight ? 'dark' : 'light');
-    }
-  }, []);
+      const isNightTime = hour >= 18 || hour < 6; // 6 PM to 6 AM
 
-  // Updated to use classList so it works with your CSS
-  useEffect(() => {
-    const root = window.document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
+      if (isNightTime) {
+        setResolvedTheme('cosmic-night');
+        document.documentElement.classList.add('cosmic-night');
+        document.documentElement.classList.remove('light', 'dark');
+      } else {
+        setResolvedTheme(theme);
+        document.documentElement.classList.add(theme);
+        document.documentElement.classList.remove('cosmic-night');
+      }
+    };
+
+    updateTheme();
+    const interval = setInterval(updateTheme, 60000); // Check every minute
+    return () => clearInterval(interval);
   }, [theme]);
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    localStorage.setItem('kumomint-theme', newTheme);
-  };
-
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, resolvedTheme: theme }}>
+    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );
-};
+}
 
 export const useTheme = () => {
   const context = useContext(ThemeContext);
