@@ -26,8 +26,6 @@ export default function CatalogPage() {
   // Maps item_id to heart intensity (1-4)
   const [wishlist, setWishlist] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
-  const [warning, setWarning] = useState<string | null>(null);
-
   // Fetch items and wishlist
   const fetchCatalogData = useCallback(async () => {
     try {
