@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Heart, Sparkles, SlidersHorizontal, Package, Tag } from 'lucide-react';
-import { useTheme } from '../contexts/ThemeContext';
+import { Search, Heart, Sparkles, Package, Tag } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
@@ -18,7 +17,6 @@ interface DbItem {
 
 export default function CatalogPage() {
   const { user } = useAuth();
-  const { resolvedTheme } = useTheme();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState("ALL");
