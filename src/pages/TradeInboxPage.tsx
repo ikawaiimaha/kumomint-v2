@@ -1,160 +1,54 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  ChevronLeft, Inbox, Send, CheckCircle2, 
-  XCircle, ArrowRightLeft, Clock, Sparkles, Package 
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
+import { 
+  MessageSquare, 
+  ArrowLeftRight, 
+  Clock, 
+  CheckCircle2, 
+  XCircle,
+  Sparkles
+} from 'lucide-react';
 
-// Types
-type DbItem = { id: string, name: string, rarity: string, image_url: string };
-type Profile = { id: string, username: string };
-type Trade = {
-  id: string,
-  initiator_id: string,
-  receiver_id: string,
-  offered_items: string[],
-  requested_items: string[],
-  status: string,
-  created_at: string
-};
+interface TradeProposal {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  sender_item: any;
+  receiver_item: any;
+}
 
 export default function TradeInboxPage() {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  
-  const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming');
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [itemDictionary, setItemDictionary] = useState<Record<string, DbItem>>({});
-  const [userDictionary, setUserDictionary] = useState<Record<string, Profile>>({});
+  const { resolvedTheme } = useTheme();
+  const [proposals, setProposals] = useState<TradeProposal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [processingId, setProcessingId] = useState<string | null>(null);
-
-  const fetchInboxData = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-
-    try {
-      // 1. Fetch trades
-      const { data: tradeData, error: tradeError } = await supabase
-        .from('trades')
-        .select('*')
-        .or(`initiator_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .order('created_at', { ascending: false });
-
-      if (tradeError) throw tradeError;
-      const fetchedTrades = (tradeData as Trade[]) || [];
-      setTrades(fetchedTrades);
-
-      // 2. Identify all unique User IDs and Item IDs involved
-      const allItemIds = new Set<string>();
-      const allUserIds = new Set<string>();
-
-      fetchedTrades.forEach(t => {
-        t.offered_items.forEach(id => allItemIds.add(id));
-        t.requested_items.forEach(id => allItemIds.add(id));
-        allUserIds.add(t.initiator_id);
-        allUserIds.add(t.receiver_id);
-      });
-
-      // 3. Fetch item details
-      if (allItemIds.size > 0) {
-        const { data: itemData } = await supabase
-          .from('items')
-          .select('*')
-          .in('id', Array.from(allItemIds));
-
-        if (itemData) {
-          const dict: Record<string, DbItem> = {};
-          itemData.forEach(item => dict[item.id] = item);
-          setItemDictionary(dict);
-        }
-      }
-
-      // 4. Fetch user profiles (Identity Sync)
-      if (allUserIds.size > 0) {
-        const { data: userData } = await supabase
-          .from('traders')
-          .select('id, username')
-          .in('id', Array.from(allUserIds));
-
-        if (userData) {
-          const dict: Record<string, Profile> = {};
-          userData.forEach(p => dict[p.id] = p);
-          setUserDictionary(dict);
-        }
-      }
-
-    } catch (error) {
-      console.error("Error fetching inbox:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
 
   useEffect(() => {
-    fetchInboxData();
-  }, [fetchInboxData]);
+    async function fetchProposals() {
+      if (!user) return;
 
-  const handleAccept = async (tradeId: string) => {
-    setProcessingId(tradeId);
-    try {
-      const { error } = await supabase.rpc('accept_trade', { trade_uuid: tradeId });
-      if (error) throw error;
-      setTrades(prev => prev.map(t => t.id === tradeId ? { ...t, status: 'accepted' } : t));
-    } catch (err) {
-      console.error(err);
-      alert("Trade failed: Items may have already moved.");
-    } finally {
-      setProcessingId(null);
+      // Fetch trades where you are either the sender or receiver
+      const { data, error } = await supabase
+        .from('trade_proposals')
+        .select(`
+          id, 
+          status, 
+          created_at,
+          sender_item:items!sender_item_id(*),
+          receiver_item:items!receiver_item_id(*)
+        `)
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order('created_at', { ascending: false });
+
+      if (data) setProposals(data as any);
+      setLoading(false);
     }
-  };
-
-  const handleDecline = async (tradeId: string, status: 'declined' | 'cancelled') => {
-    setProcessingId(tradeId);
-    try {
-      const { error } = await supabase.from('trades').update({ status }).eq('id', tradeId);
-      if (error) throw error;
-      setTrades(prev => prev.map(t => t.id === tradeId ? { ...t, status } : t));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const filteredTrades = trades.filter(trade => {
-    const isIncoming = trade.receiver_id === user?.id;
-    const matchesTab = activeTab === 'incoming' ? isIncoming : !isIncoming;
-    return matchesTab && trade.status === 'pending';
-  });
-
-  const getRarityColor = (rarity: string) => {
-    switch (rarity?.toUpperCase()) {
-      case 'SSR': return 'text-[#E84393] dark:text-[#FF6BB3]';
-      case 'SR': return 'text-[#9B59B6] dark:text-[#C175E6]';
-      case 'R': return 'text-[#F39C12] dark:text-[#FFE44D]';
-      default: return 'text-[var(--text-muted)]';
-    }
-  };
-
-  const renderItemPreview = (itemIds: string[]) => (
-    <div className="flex flex-wrap gap-2">
-      {itemIds.map(id => {
-        const item = itemDictionary[id];
-        if (!item) return null;
-        return (
-          <div key={id} className="flex flex-col items-center">
-            <div className="w-10 h-10 rounded-xl bg-[var(--bg-app)] border border-[var(--border-subtle)] flex items-center justify-center overflow-hidden">
-              {item.image_url ? <img src={item.image_url} alt="item" className="w-full h-full object-cover"/> : <Package size={16}/>}
-            </div>
-            <span className={`text-[8px] font-black uppercase ${getRarityColor(item.rarity)}`}>{item.rarity || 'N'}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
+    fetchProposals();
+  }, [user]);
 
   if (loading) return (
     <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
@@ -163,120 +57,84 @@ export default function TradeInboxPage() {
   );
 
   return (
-    <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500">
-      
-      <header className="mb-6 relative z-10">
-        <div className="flex items-center justify-between mb-6">
-          <button onClick={() => navigate(-1)} className="p-2.5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:bg-[var(--bg-secondary)]">
-            <ChevronLeft size={20} className="text-[var(--text-muted)]" />
-          </button>
-          <h1 className="text-xl font-black uppercase tracking-tighter">Trade Inbox</h1>
-          <div className="w-10" />
-        </div>
-
-        <div className="glass-panel p-1.5 flex rounded-full relative z-10">
-          <button 
-            onClick={() => setActiveTab('incoming')}
-            className={`flex-1 py-3 rounded-full font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${
-              activeTab === 'incoming' ? 'bg-[var(--accent)] text-white shadow-[0_0_15px_rgba(163,137,244,0.4)]' : 'text-[var(--text-muted)]'
-            }`}
-          >
-            <Inbox size={14} /> Incoming
-            {trades.some(t => t.receiver_id === user?.id && t.status === 'pending') && (
-              <span className="w-2 h-2 bg-pink-400 rounded-full border border-white dark:border-[#0F0B1E]" />
-            )}
-          </button>
-          <button 
-            onClick={() => setActiveTab('outgoing')}
-            className={`flex-1 py-3 rounded-full font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-300 ${
-              activeTab === 'outgoing' ? 'bg-[var(--accent)] text-white shadow-[0_0_15px_rgba(163,137,244,0.4)]' : 'text-[var(--text-muted)]'
-            }`}
-          >
-            <Send size={14} /> Outgoing
-          </button>
+    <div className={`min-h-screen pb-32 px-6 pt-12 transition-colors duration-1000 ${resolvedTheme} bg-[var(--bg-app)] text-[var(--text-main)]`}>
+      <header className="mb-8">
+        <h1 className="text-2xl font-black uppercase tracking-tighter italic">Trade Inbox</h1>
+        <div className="flex items-center gap-2 mt-1">
+          <div className="w-2 h-2 rounded-full bg-[var(--accent-pink)] animate-pulse" />
+          <p className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-[0.2em]">
+            Active Proposals
+          </p>
         </div>
       </header>
 
-      <main className="space-y-4 relative z-10">
-        {filteredTrades.length > 0 ? (
-          filteredTrades.map(trade => {
-            const otherUserId = activeTab === 'incoming' ? trade.initiator_id : trade.receiver_id;
-            const otherUser = userDictionary[otherUserId];
+      <div className="space-y-4">
+        {proposals.length > 0 ? (
+          proposals.map((trade) => (
+            <div key={trade.id} className="glass-panel p-5 bg-[#1A0B2E]/60 border-[#2D1B4E] relative overflow-hidden">
+              
+              {/* Status Badge */}
+              <div className="absolute top-0 right-0 px-3 py-1 bg-[#0C0F21] rounded-bl-xl border-l border-b border-[#2D1B4E]">
+                <span className={`text-[7px] font-black uppercase tracking-widest ${
+                  trade.status === 'accepted' ? 'text-green-400' : 
+                  trade.status === 'declined' ? 'text-red-400' : 'text-[var(--accent-blue)]'
+                }`}>
+                  {trade.status}
+                </span>
+              </div>
 
-            return (
-              <div key={trade.id} className="glass-panel p-5 relative animate-in fade-in slide-in-from-bottom-4">
-                <div className="flex justify-between items-center mb-4 pb-3 border-b border-[var(--border-subtle)]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[var(--bg-app)] border border-[var(--accent)] flex items-center justify-center font-black text-[var(--accent)] text-xs uppercase">
-                      {otherUser?.username?.charAt(0) || '?'}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs font-black">{otherUser?.username || 'Unknown Star'}</span>
-                      <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1">
-                        <Clock size={10} /> Pending
-                      </span>
-                    </div>
+              <div className="flex items-center justify-between gap-2 mt-2">
+                {/* Their Offer */}
+                <div className="flex-1 flex flex-col items-center">
+                  <div className="w-16 h-16 bg-black/40 rounded-xl p-2 mb-2 border border-[#2D1B4E]">
+                    <img src={trade.sender_item.image_url} className="w-full h-full object-contain" alt="" />
                   </div>
-                  <span className="text-[9px] font-black px-2 py-1 rounded-full bg-yellow-400/20 text-yellow-600 dark:text-yellow-400 uppercase tracking-widest">
-                    Action Required
+                  <span className="text-[7px] font-black uppercase text-center truncate w-full text-[var(--text-muted)]">They Give</span>
+                </div>
+
+                <ArrowLeftRight size={16} className="opacity-20 text-[var(--accent)]" />
+
+                {/* Your Item */}
+                <div className="flex-1 flex flex-col items-center">
+                  <div className="w-16 h-16 bg-black/40 rounded-xl p-2 mb-2 border border-[#2D1B4E]">
+                    <img src={trade.receiver_item.image_url} className="w-full h-full object-contain" alt="" />
+                  </div>
+                  <span className="text-[7px] font-black uppercase text-center truncate w-full text-[var(--text-muted)]">You Give</span>
+                </div>
+              </div>
+
+              {/* Action Buttons (Only for pending trades) */}
+              {trade.status === 'pending' && (
+                <div className="flex gap-2 mt-5">
+                  <button className="flex-1 py-2.5 bg-green-500/10 border border-green-500/20 text-green-400 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                    <CheckCircle2 size={12} /> Accept
+                  </button>
+                  <button className="flex-1 py-2.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                    <XCircle size={12} /> Decline
+                  </button>
+                </div>
+              )}
+
+              <div className="mt-4 pt-3 border-t border-[#2D1B4E] flex justify-between items-center">
+                <div className="flex items-center gap-1.5 opacity-40">
+                  <Clock size={10} />
+                  <span className="text-[7px] font-bold uppercase tracking-tighter">
+                    {new Date(trade.created_at).toLocaleDateString()}
                   </span>
                 </div>
-
-                <div className="flex items-center justify-between gap-2 mb-6">
-                  <div className="flex-1 bg-[var(--bg-app)]/50 p-3 rounded-2xl border border-[var(--border-subtle)]">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] block mb-2">
-                      {activeTab === 'incoming' ? 'They Offer' : 'You Offer'}
-                    </span>
-                    {renderItemPreview(trade.offered_items)}
-                  </div>
-                  <div className="shrink-0 w-8 h-8 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] flex items-center justify-center">
-                    <ArrowRightLeft size={14} />
-                  </div>
-                  <div className="flex-1 bg-[var(--bg-app)]/50 p-3 rounded-2xl border border-[var(--border-subtle)]">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] block mb-2">
-                      {activeTab === 'incoming' ? 'They Request' : 'You Request'}
-                    </span>
-                    {renderItemPreview(trade.requested_items)}
-                  </div>
-                </div>
-
-                {activeTab === 'incoming' ? (
-                  <div className="flex gap-3">
-                    <button 
-                      disabled={!!processingId}
-                      onClick={() => handleDecline(trade.id, 'declined')}
-                      className="flex-1 py-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-main)] rounded-xl font-black text-[10px] uppercase flex justify-center items-center gap-1.5"
-                    >
-                      <XCircle size={14} /> Decline
-                    </button>
-                    <button 
-                      disabled={!!processingId}
-                      onClick={() => handleAccept(trade.id)}
-                      className="flex-1 py-3 bg-[var(--accent-green)] text-[#1A1A1A] rounded-xl font-black text-[10px] uppercase shadow-lg shadow-[var(--accent-green)]/20 flex justify-center items-center gap-1.5"
-                    >
-                      {processingId === trade.id ? <Sparkles className="animate-spin" size={14}/> : <CheckCircle2 size={14} />} 
-                      Accept
-                    </button>
-                  </div>
-                ) : (
-                  <button 
-                    disabled={!!processingId}
-                    onClick={() => handleDecline(trade.id, 'cancelled')}
-                    className="w-full py-3 bg-[var(--bg-card)] border border-[var(--border-subtle)] text-[var(--text-main)] rounded-xl font-black text-[10px] uppercase flex justify-center items-center gap-1.5"
-                  >
-                    <XCircle size={14} /> Cancel Request
-                  </button>
-                )}
+                <button className="p-2 bg-[#0C0F21] rounded-lg text-[var(--accent)]">
+                  <MessageSquare size={14} />
+                </button>
               </div>
-            );
-          })
+            </div>
+          ))
         ) : (
-          <div className="text-center py-20 flex flex-col items-center justify-center">
-            <img src="/kumo-sad.png" alt="Empty" className="w-24 h-24 mb-4 drop-shadow-lg opacity-60 grayscale" />
-            <p className="font-black uppercase tracking-widest text-[10px] text-[var(--text-muted)]">No pending {activeTab} trades.</p>
+          <div className="py-20 text-center opacity-20">
+            <MessageSquare size={40} className="mx-auto mb-4" />
+            <p className="text-[10px] font-black uppercase tracking-widest">No transmissions found</p>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
