@@ -4,12 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { 
   Package, 
-  Lock, 
-  Unlock, 
-  ShieldCheck, 
   Search,
   Sparkles
 } from 'lucide-react';
+import ItemCard from '../components/ItemCard';
 
 interface InventoryItem {
   item_id: string;
@@ -32,7 +30,8 @@ export default function WardrobePage() {
 
   const fetchInventory = async () => {
     if (!user) return;
-    const { data, error } = await supabase
+    // FIXED: Removed unused 'error' declaration
+    const { data } = await supabase
       .from('inventory')
       .select(`
         item_id,
@@ -92,52 +91,21 @@ export default function WardrobePage() {
       </header>
 
       <div className="grid grid-cols-2 gap-4">
-        {filteredInventory.map((entry) => {
-          const isUnique = entry.quantity <= 1;
-          const isLocked = entry.is_padlocked;
-
-          return (
-            <div key={entry.item_id} className="glass-panel p-4 bg-[#1A0B2E]/60 border-[#2D1B4E] relative flex flex-col items-center">
-              
-              {/* 🔒 Padlock Toggle */}
-              <button 
-                onClick={() => togglePadlock(entry.item_id, entry.is_padlocked)}
-                className={`absolute top-2 left-2 p-1.5 rounded-lg transition-all ${
-                  isLocked ? 'text-[var(--accent-pink)] bg-[var(--accent-pink)]/10 shadow-[0_0_10px_rgba(255,0,122,0.2)]' : 'text-[var(--text-muted)] opacity-30'
-                }`}
-              >
-                {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
-              </button>
-
-              {/* 📦 Quantity Indicator */}
-              <div className="absolute top-2 right-2 px-2 py-0.5 bg-black/40 rounded text-[7px] font-black uppercase text-[var(--accent-blue)]">
-                x{entry.quantity}
-              </div>
-
-              <div className="w-full aspect-square bg-[#0C0F21] rounded-xl mb-3 mt-4 flex items-center justify-center border border-white/5">
-                <img src={entry.items.image_url} className="w-full h-full object-contain p-2" alt="" />
-              </div>
-
-              <h4 className="text-[8px] font-black uppercase text-center truncate w-full mb-1">{entry.items.name}</h4>
-              <span className="text-[7px] font-bold text-[var(--accent-blue)] uppercase mb-3">{entry.items.rarity}</span>
-
-              {/* 🛡️ Duplicate Guard Status */}
-              <div className={`w-full py-2 rounded-lg text-[7px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 border ${
-                isUnique ? 'border-white/5 text-[var(--text-muted)] bg-white/5' : 
-                isLocked ? 'border-[var(--accent-pink)]/30 text-[var(--accent-pink)] bg-[var(--accent-pink)]/5' : 
-                'border-green-500/30 text-green-400 bg-green-500/5'
-              }`}>
-                {isUnique ? (
-                  <>Unique Copy</>
-                ) : isLocked ? (
-                  <><Lock size={10} /> Locked</>
-                ) : (
-                  <><ShieldCheck size={10} /> Tradeable</>
-                )}
-              </div>
-            </div>
-          );
-        })}
+        {filteredInventory.map((entry) => (
+          <ItemCard 
+            key={entry.item_id}
+            item={{
+              id: entry.item_id,
+              name: entry.items.name,
+              image_url: entry.items.image_url,
+              rarity: entry.items.rarity,
+              quantity: entry.quantity,
+              is_padlocked: entry.is_padlocked
+            }}
+            variant="wardrobe"
+            onToggleLock={togglePadlock}
+          />
+        ))}
       </div>
 
       {inventory.length === 0 && (
