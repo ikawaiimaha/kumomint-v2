@@ -11,7 +11,6 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Check local storage or default to 'dark' for the Nebula vibe
   const [theme, setTheme] = useState<Theme>(() => {
     return (localStorage.getItem('kumomint-theme') as Theme) || 'dark';
   });
@@ -20,19 +19,13 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const root = window.document.documentElement;
-    
-    // Logic to determine the actual theme
     const activeTheme = theme === 'system' 
       ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
       : theme;
 
     setResolvedTheme(activeTheme as 'light' | 'dark');
-
-    // 🌌 THE FIX: Manually force the class onto the HTML element
     root.classList.remove('light', 'dark');
     root.classList.add(activeTheme);
-    
-    // Save preference
     localStorage.setItem('kumomint-theme', theme);
   }, [theme]);
 
@@ -45,8 +38,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
+  if (!context) throw new Error('useTheme must be used within a ThemeProvider');
   return context;
 }
