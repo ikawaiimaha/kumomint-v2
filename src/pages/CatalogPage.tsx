@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Heart, Sparkles, Package } from 'lucide-react'; // FIXED: Removed unused 'Tag'
+import { Search, Heart, Sparkles, Package, CheckCircle2, Box } from 'lucide-react'; 
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
@@ -13,7 +13,6 @@ interface DbItem {
   bag_type?: string;
   is_animated?: boolean;
   is_retired?: boolean;
-  main_category?: string;
 }
 
 const HEART_CONFIG = {
@@ -37,31 +36,35 @@ export default function CatalogPage() {
   const [activeTab, setActiveTab] = useState("ALL");
   const [catalogItems, setCatalogItems] = useState<DbItem[]>([]);
   const [collectionTabs, setCollectionTabs] = useState<string[]>(["ALL"]);
+  
+  // Track status for both Wishlist and Inventory
   const [wishlist, setWishlist] = useState<Record<string, number>>({});
+  const [inventory, setInventory] = useState<Set<string>>(new Set());
+  
   const [loading, setLoading] = useState(true);
 
-  const fetchCatalogData = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
+      // 1. Fetch Items
       const { data: itemsData } = await supabase.from('items').select('*');
-      
       const uniqueCollections = new Set<string>();
-      itemsData?.forEach(item => {
-        if (item.collection_type) uniqueCollections.add(item.collection_type);
-      });
-      
+      itemsData?.forEach(item => { if (item.collection_type) uniqueCollections.add(item.collection_type); });
       setCollectionTabs(["ALL", ...Array.from(uniqueCollections)]);
       setCatalogItems((itemsData as DbItem[]) || []);
 
       if (user) {
-        const { data: wishData } = await supabase
-          .from('wishlists')
-          .select('item_id, intensity')
-          .eq('trader_id', user.id);
-        
+        // 2. Fetch Wishlist Status
+        const { data: wishData } = await supabase.from('wishlists').select('item_id, intensity').eq('trader_id', user.id);
         if (wishData) {
           const wishRecord: Record<string, number> = {};
           wishData.forEach(w => wishRecord[w.item_id] = w.intensity || 1);
           setWishlist(wishRecord);
+        }
+
+        // 3. Fetch Inventory Status (Owned Items)
+        const { data: invData } = await supabase.from('inventory').select('item_id').eq('trader_id', user.id);
+        if (invData) {
+          setInventory(new Set(invData.map(i => i.item_id)));
         }
       }
     } catch (error) {
@@ -71,8 +74,9 @@ export default function CatalogPage() {
     }
   }, [user]);
 
-  useEffect(() => { fetchCatalogData(); }, [fetchCatalogData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Handle Wishlist cycling (Hearts)
   const cycleWishlist = async (itemId: string) => {
     if (!user) return;
     const currentLevel = wishlist[itemId] || 0;
@@ -86,7 +90,23 @@ export default function CatalogPage() {
         setWishlist(prev => ({ ...prev, [itemId]: nextLevel }));
         await supabase.from('wishlists').upsert({ trader_id: user.id, item_id: itemId, intensity: nextLevel });
       }
-    } catch (err) { console.error("Save failed:", err); }
+    } catch (err) { console.error("Wishlist sync failed:", err); }
+  };
+
+  // Handle Inventory Toggle (Mark as Owned)
+  const toggleInventory = async (itemId: string) => {
+    if (!user) return;
+    const isOwned = inventory.has(itemId);
+
+    try {
+      if (isOwned) {
+        setInventory(prev => { const next = new Set(prev); next.delete(itemId); return next; });
+        await supabase.from('inventory').delete().match({ trader_id: user.id, item_id: itemId });
+      } else {
+        setInventory(prev => new Set(prev).add(itemId));
+        await supabase.from('inventory').upsert({ trader_id: user.id, item_id: itemId, quantity: 1 });
+      }
+    } catch (err) { console.error("Inventory sync failed:", err); }
   };
 
   const filteredItems = catalogItems.filter(item => {
@@ -108,8 +128,8 @@ export default function CatalogPage() {
           <h1 className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
             Explore Orbit <Sparkles size={18} className="text-[var(--accent)] animate-pulse" />
           </h1>
-          <div className="px-3 py-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-main)] text-[10px] font-black shadow-lg">
-            {Object.keys(wishlist).length} SAVED
+          <div className="px-3 py-1.5 rounded-full border border-[var(--border-subtle)] bg-[var(--bg-card)] text-[var(--text-main)] text-[10px] font-black shadow-lg uppercase">
+            {inventory.size} Owned • {Object.keys(wishlist).length} Saved
           </div>
         </div>
 
@@ -142,23 +162,37 @@ export default function CatalogPage() {
       <main className="grid grid-cols-2 gap-4 relative z-10">
         {filteredItems.map((item) => {
           const intensity = wishlist[item.id] || 0;
+          const isOwned = inventory.has(item.id);
           const config = HEART_CONFIG[intensity as keyof typeof HEART_CONFIG];
           const bagConfig = BAG_TYPE_CONFIG[item.bag_type as keyof typeof BAG_TYPE_CONFIG] || BAG_TYPE_CONFIG['Happy Bag'];
           
           return (
-            <div key={item.id} className={`glass-panel p-4 flex flex-col items-center relative transition-all duration-300 ${intensity === 4 ? 'border-[var(--accent-pink)] shadow-[0_0_15px_rgba(214,114,161,0.2)]' : ''}`}>
+            <div key={item.id} className={`glass-panel p-4 flex flex-col items-center relative transition-all duration-300 ${isOwned ? 'border-[var(--accent-blue)] bg-[var(--accent-blue)]/5' : ''} ${intensity === 4 ? 'border-[var(--accent-pink)]' : ''}`}>
               
+              {/* Bag Type Badge */}
               {bagConfig.label && (
                 <div className="absolute -top-2 left-1/2 -translate-x-1/2 text-white text-[7px] font-black px-2 py-0.5 rounded-full shadow-md uppercase tracking-widest z-20" style={{ backgroundColor: bagConfig.color }}>
                   {bagConfig.label}
                 </div>
               )}
 
+              {/* Rarity and Animation */}
               <div className="absolute top-3 left-4 flex items-center gap-1">
                 <div className="text-[9px] font-black uppercase text-[var(--text-muted)]">{item.rarity}</div>
                 {item.is_animated && <Sparkles size={10} className="text-[var(--accent-blue)] animate-pulse" />}
               </div>
 
+              {/* 📦 INVENTORY TOGGLE [New Feature] */}
+              <div className="absolute top-2 right-10">
+                <button 
+                  onClick={() => toggleInventory(item.id)} 
+                  className={`p-1 transition-all ${isOwned ? 'text-[var(--accent-blue)] scale-110' : 'text-[var(--text-muted)] opacity-30 hover:opacity-100'}`}
+                >
+                  {isOwned ? <CheckCircle2 size={18} fill="currentColor" className="text-[var(--bg-app)]" /> : <Box size={18} />}
+                </button>
+              </div>
+
+              {/* Wishlist Hearts */}
               <div className="absolute top-2 right-2 flex flex-col items-end">
                 <button onClick={() => cycleWishlist(item.id)} className="flex gap-0.5 p-1 transition-all duration-300 active:scale-75">
                   {intensity > 0 ? (
@@ -179,7 +213,7 @@ export default function CatalogPage() {
                 {item.name}
               </h3>
 
-              <button className="w-full py-2 mt-auto rounded-xl bg-[var(--bg-app)] border border-[var(--border-subtle)] text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5">
+              <button className={`w-full py-2 mt-auto rounded-xl border text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors ${isOwned ? 'bg-[var(--accent-blue)] text-white border-transparent' : 'bg-[var(--bg-app)] border-[var(--border-subtle)]'}`}>
                 <Package size={10} />
                 <span className="truncate max-w-[70px]">{item.collection_type}</span>
               </button>
