@@ -31,8 +31,8 @@ export default function TradeInboxPage() {
     async function fetchProposals() {
       if (!user) return;
 
-      // Fetch trades where you are either the sender or receiver
-      const { data, error } = await supabase
+      // FIXED: Removed unused 'error' declaration to resolve TS6133
+      const { data } = await supabase
         .from('trade_proposals')
         .select(`
           id, 
