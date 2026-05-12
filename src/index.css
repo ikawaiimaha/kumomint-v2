@@ -3,9 +3,8 @@
 @tailwind utilities;
 
 :root {
-  /* Sunny Garden (Light) */
   --bg-app: #FFF9F9;
-  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-card: rgba(255, 255, 255, 0.8);
   --accent: #A389F4;
   --accent-pink: #FF007A;
   --accent-blue: #00D1FF;
@@ -14,10 +13,9 @@
   --border-subtle: rgba(45, 27, 78, 0.08);
 }
 
-/* 🌌 STAR WORK: Dark Mode Override */
 .dark {
   --bg-app: #0C0F21;
-  --bg-card: rgba(26, 11, 46, 0.65);
+  --bg-card: rgba(26, 11, 46, 0.7);
   --accent: #A389F4;
   --accent-pink: #FF007A;
   --accent-blue: #00D1FF;
@@ -27,21 +25,18 @@
 }
 
 body {
-  background-color: var(--bg-app);
+  background-color: var(--bg-app) !important;
   color: var(--text-main);
-  font-family: 'Inter', -apple-system, sans-serif;
-  transition: background-color 0.4s ease, color 0.4s ease;
+  transition: background-color 0.4s ease;
   margin: 0;
 }
 
-/* 🧪 The Glassmorphism Recipe */
 .glass-panel {
   background: var(--bg-card);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: 32px;
-  box-shadow: 0 10px 40px -12px rgba(0, 0, 0, 0.25);
 }
 
 .heading-italic {
