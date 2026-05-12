@@ -9,33 +9,29 @@ import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
 import Navigation from './components/Navigation';
 
-/**
- * AppContent handles the theme class application and the 
- * main routing logic for the platform.
- */
 function AppContent() {
   const { user, loading } = useAuth();
   const { resolvedTheme } = useTheme();
 
-  // Prevent flicker during initial auth check
+  // If the app is still checking who you are, show nothing for a second
   if (loading) return null;
 
   return (
     <div className={`min-h-screen ${resolvedTheme} transition-colors duration-1000`}>
       <Routes>
-        {/* Auth Routes */}
+        {/* If you aren't logged in, go to the login page */}
         <Route 
           path="/login" 
           element={!user ? <LoginPage /> : <Navigate to="/" />} 
         />
 
-        {/* Main Orbit Routes */}
+        {/* If you ARE logged in, you can see these pages */}
         <Route 
           path="/" 
           element={user ? <CatalogPage /> : <Navigate to="/login" />} 
         />
         
-        {/* Redirecting Search and Add to Catalog to prevent blank screens */}
+        {/* We point Search and Add back to the Catalog so they aren't empty */}
         <Route 
           path="/catalog" 
           element={user ? <CatalogPage /> : <Navigate to="/login" />} 
@@ -54,19 +50,16 @@ function AppContent() {
           element={user ? <ProfilePage /> : <Navigate to="/login" />} 
         />
 
-        {/* Catch-all redirect to Home */}
+        {/* If you get lost, go back to the home page */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
 
-      {/* Global Navigation - Only visible when logged in */}
+      {/* Show the bottom buttons if you are logged in */}
       {user && <Navigation />}
     </div>
   );
 }
 
-/**
- * Root App component providing Context for Auth, Theme, and Routing.
- */
 export default function App() {
   return (
     <AuthProvider>
