@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
+// Page Imports
 import Home from './pages/Home';
 import CatalogPage from './pages/CatalogPage';
 import WishlistPage from './pages/WishlistPage';
@@ -19,10 +20,14 @@ function AppContent() {
   if (loading) return null;
 
   return (
+    /* The resolvedTheme class ('light' or 'dark') must be on this parent */
     <div className={resolvedTheme}>
+      {/* This inner div uses the CSS variable for the background color */}
       <div className="bg-[var(--bg-app)] min-h-screen text-[var(--text-main)] transition-colors duration-500">
         <Routes>
           <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" />} />
+          
+          {/* Protected Routes */}
           <Route path="/" element={user ? <Home /> : <Navigate to="/login" />} />
           <Route path="/catalog" element={user ? <CatalogPage /> : <Navigate to="/login" />} />
           <Route path="/trades" element={user ? <TradesPage /> : <Navigate to="/login" />} />
@@ -30,8 +35,10 @@ function AppContent() {
           <Route path="/notifications" element={user ? <NotificationsPage /> : <Navigate to="/login" />} />
           <Route path="/wishlist" element={user ? <WishlistPage /> : <Navigate to="/login" />} />
           <Route path="/profile" element={user ? <ProfilePage /> : <Navigate to="/login" />} />
+          
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
+        
         {user && <Navigation />}
       </div>
     </div>
