@@ -37,7 +37,7 @@ export default function ProfilePage() {
     async function loadProfileData() {
       if (!user) return;
       try {
-        // 1. Fetch "Dreamy" items (Intensity 4) for the Top Wishlist section
+        // Fetching "Dreamy" items (Intensity 4) for the Top Wishlist
         const { data: wishData } = await supabase
           .from('wishlists')
           .select('id, items(id, name, image_url)')
@@ -45,7 +45,7 @@ export default function ProfilePage() {
           .eq('intensity', 4)
           .limit(5);
 
-        // 2. Fetch inventory count
+        // Fetching real inventory count to avoid TypeScript unused errors
         const { count } = await supabase
           .from('inventory')
           .select('*', { count: 'exact', head: true })
@@ -87,7 +87,7 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      {/* Main Profile Card */}
+      {/* Profile Card */}
       <section className="glass-panel p-8 mb-8 bg-[#1A0B2E]/80 border-[#2D1B4E] relative overflow-hidden flex flex-col items-center text-center shadow-2xl">
         <div className="relative mb-4">
           <div className="w-28 h-28 rounded-full border-2 border-[var(--accent)] p-1.5 shadow-[0_0_25px_rgba(163,137,244,0.4)]">
@@ -119,7 +119,7 @@ export default function ProfilePage() {
       <div className="grid grid-cols-2 gap-4 mb-10">
         <div className="glass-panel p-5 bg-[#1A0B2E]/40 border-[#2D1B4E]">
           <span className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">Mints</span>
-          <span className="text-xl font-black italic">0</span>
+          <span className="text-xl font-black italic">{inventoryCount}</span>
         </div>
         <div className="glass-panel p-5 bg-[#1A0B2E]/40 border-[#2D1B4E]">
           <span className="text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest block mb-1">Trades</span>
@@ -162,7 +162,6 @@ export default function ProfilePage() {
         </div>
       </section>
 
-      {/* Action Area */}
       <button 
         onClick={() => signOut()}
         className="w-full py-5 glass-panel bg-red-500/5 border-red-500/20 text-red-400 font-black uppercase text-xs tracking-[0.3em] flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-all"
