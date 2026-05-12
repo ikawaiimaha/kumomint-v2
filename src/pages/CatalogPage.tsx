@@ -22,12 +22,11 @@ const HEART_CONFIG = {
   4: { color: "#FF007A", glow: "0 0 30px #FF007A" },
 };
 
-// HKDV Rarity Palette
-const RARITY_CONFIG: Record<string, { color: string; bg: string }> = {
-  'SSR': { color: '#FFD600', bg: 'rgba(255, 214, 0, 0.15)' }, // Star Gold
-  'SR':  { color: '#9D00FF', bg: 'rgba(157, 0, 255, 0.15)' },  // Bright Purple
-  'R':   { color: '#00F3FF', bg: 'rgba(0, 243, 255, 0.15)' },  // Aqua
-  'N':   { color: '#8E8A88', bg: 'rgba(142, 138, 136, 0.15)' } // Muted Silver
+const RARITY_CONFIG: Record<string, { color: string; bg: string; aura?: string }> = {
+  'SSR': { color: '#FFD600', bg: 'rgba(255, 214, 0, 0.15)', aura: '0 0 25px rgba(255, 214, 0, 0.4)' },
+  'SR':  { color: '#9D00FF', bg: 'rgba(157, 0, 255, 0.15)', aura: '0 0 15px rgba(157, 0, 255, 0.2)' },
+  'R':   { color: '#00F3FF', bg: 'rgba(0, 243, 255, 0.15)' },
+  'N':   { color: '#8E8A88', bg: 'rgba(142, 138, 136, 0.15)' }
 };
 
 export default function CatalogPage() {
@@ -35,7 +34,7 @@ export default function CatalogPage() {
   const { resolvedTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState("ALL");
-  const [activeRarity, setActiveRarity] = useState("ALL"); // New State for Rarity Filter
+  const [activeRarity, setActiveRarity] = useState("ALL");
   
   const [catalogItems, setCatalogItems] = useState<DbItem[]>([]);
   const [collectionTabs, setCollectionTabs] = useState<string[]>(["ALL"]);
@@ -82,7 +81,7 @@ export default function CatalogPage() {
         setWishlist(prev => ({ ...prev, [itemId]: nextLevel }));
         await supabase.from('wishlists').upsert({ trader_id: user.id, item_id: itemId, intensity: nextLevel });
       }
-    } catch (err) { console.error("Wishlist sync failed:", err); }
+    } catch (err) { console.error("Wishlist failed:", err); }
   };
 
   const toggleInventory = async (itemId: string) => {
@@ -96,10 +95,9 @@ export default function CatalogPage() {
         setInventory(prev => new Set(prev).add(itemId));
         await supabase.from('inventory').upsert({ trader_id: user.id, item_id: itemId, quantity: 1 });
       }
-    } catch (err) { console.error("Inventory sync failed:", err); }
+    } catch (err) { console.error("Inventory failed:", err); }
   };
 
-  // Improved Filtering Logic
   const filteredItems = catalogItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = activeTab === "ALL" || item.collection_type === activeTab;
@@ -115,6 +113,20 @@ export default function CatalogPage() {
 
   return (
     <div className={`min-h-screen pb-32 px-6 pt-12 transition-colors duration-1000 ${resolvedTheme} bg-[var(--bg-app)] text-[var(--text-main)]`}>
+      
+      {/* 🔮 SSR Aura Styles */}
+      <style>{`
+        @keyframes ssr-pulse {
+          0% { box-shadow: 0 0 15px rgba(255, 214, 0, 0.2); border-color: rgba(255, 214, 0, 0.3); }
+          50% { box-shadow: 0 0 30px rgba(255, 214, 0, 0.5); border-color: rgba(255, 214, 0, 0.6); }
+          100% { box-shadow: 0 0 15px rgba(255, 214, 0, 0.2); border-color: rgba(255, 214, 0, 0.3); }
+        }
+        .ssr-aura {
+          animation: ssr-pulse 3s infinite ease-in-out;
+          border-width: 2px !important;
+        }
+      `}</style>
+
       <header className="mb-6 relative z-10">
         <div className="flex justify-between items-center mb-6 px-1">
           <h1 className="text-xl font-black uppercase tracking-tighter flex items-center gap-2">
@@ -125,7 +137,6 @@ export default function CatalogPage() {
           </div>
         </div>
 
-        {/* Search Bar */}
         <div className="flex items-center p-4 gap-3 mb-4 bg-[var(--bg-card)] rounded-2xl border border-[var(--border-subtle)] shadow-xl">
           <Search size={18} className="text-[var(--accent)]" />
           <input 
@@ -137,13 +148,12 @@ export default function CatalogPage() {
           />
         </div>
 
-        {/* 💎 HKDV RARITY FILTER [New Feature] */}
         <div className="flex justify-between gap-2 mb-6">
           {["ALL", "SSR", "SR", "R", "N"].map((r) => (
             <button
               key={r}
               onClick={() => setActiveRarity(r)}
-              className={`flex-1 py-2 rounded-xl text-[9px] font-black transition-all duration-300 border uppercase tracking-widest ${
+              className={`flex-1 py-2 rounded-xl text-[9px] font-black transition-all border uppercase tracking-widest ${
                 activeRarity === r 
                   ? 'bg-[var(--text-main)] text-[var(--bg-app)] border-transparent scale-105 shadow-lg' 
                   : 'bg-[var(--bg-card)] text-[var(--text-muted)] border-[var(--border-subtle)]'
@@ -155,7 +165,6 @@ export default function CatalogPage() {
           ))}
         </div>
 
-        {/* Collection Type Tabs */}
         <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-6 px-6">
           {collectionTabs.map(tab => (
             <button
@@ -177,20 +186,27 @@ export default function CatalogPage() {
           const isOwned = inventory.has(item.id);
           const config = HEART_CONFIG[intensity as keyof typeof HEART_CONFIG];
           const rarityStyle = RARITY_CONFIG[item.rarity] || RARITY_CONFIG['N'];
+          const isSSR = item.rarity === 'SSR';
           
           return (
-            <div key={item.id} className={`glass-panel p-4 flex flex-col items-center relative transition-all duration-300 ${isOwned ? 'border-[var(--accent-blue)] bg-[var(--accent-blue)]/5' : ''} ${intensity === 4 ? 'border-[var(--accent-pink)] shadow-[0_0_15px_rgba(214,114,161,0.2)]' : ''}`}>
+            <div 
+              key={item.id} 
+              className={`glass-panel p-4 flex flex-col items-center relative transition-all duration-300 
+                ${isSSR ? 'ssr-aura' : ''} 
+                ${isOwned ? 'bg-[var(--accent-blue)]/5 border-[var(--accent-blue)]/30' : ''} 
+                ${intensity === 4 && !isSSR ? 'border-[var(--accent-pink)]' : ''}`}
+            >
               
               {/* Rarity Tag */}
               <div 
-                className="absolute top-3 left-4 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter"
-                style={{ backgroundColor: rarityStyle.bg, color: rarityStyle.color }}
+                className="absolute top-3 left-4 px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-tighter z-20"
+                style={{ backgroundColor: rarityStyle.bg, color: rarityStyle.color, boxShadow: rarityStyle.aura }}
               >
                 {item.rarity}
               </div>
 
               {/* Inventory Check */}
-              <div className="absolute top-2 right-10">
+              <div className="absolute top-2 right-10 z-20">
                 <button 
                   onClick={() => toggleInventory(item.id)} 
                   className={`p-1 transition-all ${isOwned ? 'text-[var(--accent-blue)] scale-110' : 'text-[var(--text-muted)] opacity-30'}`}
@@ -200,7 +216,7 @@ export default function CatalogPage() {
               </div>
 
               {/* Wishlist Hearts */}
-              <div className="absolute top-2 right-2 flex flex-col items-end">
+              <div className="absolute top-2 right-2 flex flex-col items-end z-20">
                 <button onClick={() => cycleWishlist(item.id)} className="flex gap-0.5 p-1 transition-all duration-300">
                   {intensity > 0 ? (
                     Array.from({ length: intensity }).map((_, i) => (
@@ -212,8 +228,14 @@ export default function CatalogPage() {
                 </button>
               </div>
 
+              {/* Item Image Container */}
               <div className={`w-full aspect-square rounded-2xl bg-[#080808] border border-[var(--border-subtle)] flex items-center justify-center mb-3 mt-4 overflow-hidden group ${item.is_retired ? 'grayscale-[0.4]' : ''}`}>
                 <img src={item.image_url} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                
+                {/* Internal Glow for SSR Items */}
+                {isSSR && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(255,214,0,0.1)] to-transparent pointer-events-none" />
+                )}
               </div>
 
               <h3 className="font-black text-[9px] text-[var(--text-main)] text-center h-8 flex items-center line-clamp-2 mb-2 leading-tight uppercase px-1">
