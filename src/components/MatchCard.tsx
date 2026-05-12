@@ -1,74 +1,116 @@
-import { ArrowRightLeft, Sparkles } from 'lucide-react';
-import HeartTier from './HeartTier';
+import { useNavigate } from 'react-router-dom';
+import { 
+  ArrowLeftRight, 
+  Sparkles, 
+  ChevronRight, 
+  User,
+  Star,
+  Heart
+} from 'lucide-react';
 
-// This matches the data structure returning from our Supabase SQL function
-export interface MatchData {
-  partner_username: string;
-  partner_avatar: string;
-  your_wish_item_name: string;
-  your_wish_image: string;
-  your_wish_heart_tier: number;
-  their_wish_item_name: string;
-  their_wish_image: string;
-  their_wish_heart_tier: number;
+interface MatchItem {
+  id: string;
+  name: string;
+  image_url: string;
+  rarity: string;
 }
 
-export default function MatchCard({ match }: { match: MatchData }) {
-  const isDreamMatch = match.your_wish_heart_tier === 4;
+interface MatchCardProps {
+  match: {
+    partner_id: string;
+    partner_name: string;
+    partner_buddy: string;
+    match_score: number;
+    items_you_give: MatchItem[];
+    items_they_give: MatchItem[];
+  };
+}
+
+export default function MatchCard({ match }: MatchCardProps) {
+  const navigate = useNavigate();
+
+  // Logic: Calculate if this is a "Super Match"
+  const isHighIntensity = match.match_score >= 80;
 
   return (
-    <div className={`relative w-[300px] shrink-0 rounded-[24px] border bg-white p-4 shadow-sm transition-all hover:shadow-md ${isDreamMatch ? 'border-[#FFB5C5] shadow-[#FFB5C5]/20' : 'border-[rgba(165,214,200,0.3)]'}`}>
+    <div className={`glass-panel p-6 mb-6 relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99] border-[#2D1B4E] ${
+      isHighIntensity ? 'bg-gradient-to-br from-[#1A0B2E] to-[#2D1B4E] shadow-[0_0_30px_rgba(163,137,244,0.1)]' : 'bg-[#1A0B2E]/60'
+    }`}>
       
-      {/* Dream Item Banner */}
-      {isDreamMatch && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-gradient-to-r from-[#FF98B8] to-[#FF6B9E] text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm z-10 whitespace-nowrap">
-          <Sparkles size={10} /> Dream Match Found!
+      {/* 🔮 Match Intensity Sparkle */}
+      {isHighIntensity && (
+        <div className="absolute top-0 right-0 p-4">
+          <Sparkles className="text-[var(--accent)] animate-pulse" size={20} />
         </div>
       )}
 
-      {/* Partner Header */}
-      <div className="flex items-center gap-2 mb-4 mt-2">
-        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-[12px] overflow-hidden shrink-0">
-          {match.partner_avatar ? <img src={match.partner_avatar} className="w-full h-full object-cover" alt="" /> : match.partner_username.charAt(0)}
+      {/* 👤 Partner Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="w-12 h-12 rounded-full bg-[#0C0F21] border border-[var(--accent-blue)]/30 flex items-center justify-center text-[var(--accent-blue)] shadow-inner">
+          <User size={20} />
         </div>
-        <p className="text-[13px] font-bold text-[#2E2A28] truncate">
-          {match.partner_username} <span className="text-gray-400 font-normal">wants to trade!</span>
-        </p>
+        <div className="flex-1">
+          <h3 className="text-sm font-black uppercase tracking-tighter italic leading-none">
+            {match.partner_name}
+          </h3>
+          <div className="flex items-center gap-1.5 mt-1 opacity-50">
+            <Heart size={10} className="fill-[var(--accent-pink)] text-[var(--accent-pink)]" />
+            <span className="text-[7px] font-black uppercase tracking-widest">Buddy: {match.partner_buddy}</span>
+          </div>
+        </div>
+        <div className="text-right">
+          <span className="text-[10px] font-black italic text-[var(--accent)]">{match.match_score}%</span>
+          <p className="text-[6px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Match</p>
+        </div>
       </div>
 
-      {/* The Trade Comparison */}
-      <div className="bg-gray-50 rounded-[18px] p-3 flex items-center justify-between relative">
+      {/* ⇆ The Mirror Swap View */}
+      <div className="flex items-center justify-between gap-2 p-4 bg-black/20 rounded-2xl border border-white/5 mb-6 relative">
         
-        {/* What You Get */}
-        <div className="flex-1 flex flex-col items-center text-center min-w-0">
-          <p className="text-[10px] uppercase font-bold text-[#4E927E] mb-2">You Get</p>
-          <div className="w-16 h-16 bg-white rounded-xl shadow-sm overflow-hidden mb-2 shrink-0">
-            <img src={match.your_wish_image} className="w-full h-full object-cover" alt="" />
+        {/* Items You Give */}
+        <div className="flex-1">
+          <p className="text-[6px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3 text-center">You Give</p>
+          <div className="flex -space-x-4 justify-center">
+            {match.items_you_give.slice(0, 3).map((item, idx) => (
+              <div key={item.id} className="w-12 h-12 bg-[#0C0F21] rounded-xl border border-[#2D1B4E] p-1.5 shadow-xl relative" style={{ zIndex: 10 - idx }}>
+                <img src={item.image_url} className="w-full h-full object-contain" alt="" />
+                {item.rarity === 'SSR' && <Star size={6} className="absolute bottom-1 right-1 text-yellow-400 fill-yellow-400" />}
+              </div>
+            ))}
           </div>
-          <p className="text-[10px] font-semibold text-[#2E2A28] mb-2 truncate w-full px-1">{match.your_wish_item_name}</p>
-          <HeartTier tier={match.your_wish_heart_tier} />
         </div>
 
-        {/* Swap Icon */}
-        <div className="w-8 h-8 shrink-0 bg-white border border-gray-100 rounded-full flex items-center justify-center text-gray-400 z-10 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 shadow-sm">
-          <ArrowRightLeft size={14} />
-        </div>
+        <ArrowLeftRight size={16} className="text-[var(--accent)] opacity-20 shrink-0" />
 
-        {/* What They Get */}
-        <div className="flex-1 flex flex-col items-center text-center min-w-0">
-          <p className="text-[10px] uppercase font-bold text-[#E18E47] mb-2">They Get</p>
-          <div className="w-16 h-16 bg-white rounded-xl shadow-sm overflow-hidden mb-2 shrink-0">
-            <img src={match.their_wish_image} className="w-full h-full object-cover" alt="" />
+        {/* Items They Give */}
+        <div className="flex-1">
+          <p className="text-[6px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3 text-center">You Get</p>
+          <div className="flex -space-x-4 justify-center">
+            {match.items_they_give.slice(0, 3).map((item, idx) => (
+              <div key={item.id} className="w-12 h-12 bg-[#0C0F21] rounded-xl border border-[#2D1B4E] p-1.5 shadow-xl relative" style={{ zIndex: 10 - idx }}>
+                <img src={item.image_url} className="w-full h-full object-contain" alt="" />
+                {item.rarity === 'SSR' && <Star size={6} className="absolute bottom-1 right-1 text-yellow-400 fill-yellow-400" />}
+              </div>
+            ))}
           </div>
-          <p className="text-[10px] font-semibold text-[#2E2A28] mb-2 truncate w-full px-1">{match.their_wish_item_name}</p>
-          <HeartTier tier={match.their_wish_heart_tier} />
         </div>
-
       </div>
 
-      <button className="w-full mt-4 bg-[linear-gradient(135deg,#A5D6C8,#82C9B2)] text-[#2E2A28] py-2.5 rounded-[14px] font-bold text-[13px] hover:scale-[1.02] transition-transform">
-        Send Trade Offer
-      </button>
+      {/* 🛰️ Action Footer */}
+      <div className="flex gap-3">
+        <button 
+          onClick={() => navigate(`/profile/${match.partner_id}`)}
+          className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/10 transition-colors"
+        >
+          View Orbit
+        </button>
+        <button 
+          onClick={() => navigate(`/propose-trade/${match.partner_id}`)}
+          className="flex-1 py-3 bg-[var(--accent)] text-[var(--bg-app)] rounded-xl text-[8px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg hover:brightness-110 transition-all"
+        >
+          Propose <ChevronRight size={12} />
+        </button>
+      </div>
     </div>
   );
 }
