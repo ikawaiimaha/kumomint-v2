@@ -24,12 +24,12 @@
 .cosmic-night {
   --bg-app: #0C0F21;            /* Deep Space Blue */
   --bg-card: #1A0B2E;           /* Deep Nebula Purple */
-  --bg-secondary: #2a2563;      /* From your palette: Dark Navy */
+  --bg-secondary: #2a2563;      /* Dark Navy from your palette */
   --accent: #A389F4;            /* Soft Lavender */
-  --accent-pink: #d672a1;       /* From your palette: Nebula Pink */
-  --accent-blue: #80c0e4;       /* From your palette: Sky Blue */
+  --accent-pink: #d672a1;       /* Nebula Pink from your palette */
+  --accent-blue: #80c0e4;       /* Sky Blue from your palette */
   --text-main: #FFF9E3;         /* Star White */
-  --text-muted: #725ba3;        /* From your palette: Muted Purple */
+  --text-muted: #725ba3;        /* Muted Purple from your palette */
   --border-subtle: #483475;
 }
 
@@ -40,7 +40,14 @@ body {
   min-height: 100vh;
 }
 
-/* ☄️ Shooting Star Animation for Cosmic Night */
+/* Universal Card Styling */
+.glass-panel {
+  @apply rounded-[32px] border transition-all duration-300;
+  background: var(--bg-card);
+  border-color: var(--border-subtle);
+}
+
+/* ☄️ Shooting Star Animation */
 @keyframes shooting-star {
   0% { transform: translateX(0) translateY(0) rotate(-45deg); opacity: 0; }
   10% { opacity: 1; }
@@ -59,11 +66,4 @@ body {
   animation: shooting-star 12s infinite ease-in;
   pointer-events: none;
   z-index: 50;
-}
-
-/* Universal Card Styling */
-.glass-panel {
-  @apply rounded-[32px] border transition-all duration-300;
-  background: var(--bg-card);
-  border-color: var(--border-subtle);
 }
