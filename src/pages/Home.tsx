@@ -1,152 +1,78 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  Sparkles, Package, Heart, ChevronRight 
-} from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
+import { Sparkles, ArrowRight, Heart, Zap } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export default function Home() {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [items, setItems] = useState<any[]>([]);
+  const { resolvedTheme } = useTheme();
+  const [recentItems, setRecentItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [username, setUsername] = useState('trader');
 
-  // Clock Logic
-  const hour = new Date().getHours();
-  const isNightTime = hour >= 18 || hour < 6;
-  
   useEffect(() => {
-    async function fetchHomeData() {
-      if (!user) return;
+    async function loadHomeData() {
+      // Get the newest items added to the galaxy
+      const { data } = await supabase
+        .from('items')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(4);
       
-      try {
-        const { data: profile } = await supabase
-          .from('traders')
-          .select('username')
-          .eq('id', user.id)
-          .single();
-        if (profile) setUsername(profile.username);
-
-        const { data: itemData } = await supabase
-          .from('items')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(4);
-        if (itemData) setItems(itemData);
-      } catch (err) {
-        console.error("Home load error:", err);
-      } finally {
-        setLoading(false);
-      }
+      if (data) setRecentItems(data);
+      setLoading(false);
     }
-    fetchHomeData();
-  }, [user]);
-
-  // Mascot & Greeting Logic
-  let kumoAsset = "/kumo-happy.png";
-  let greeting = "Welcome back,";
-
-  if (isNightTime) {
-    kumoAsset = "/kumo-sleepy.png"; 
-    greeting = "Good evening,";
-  } else if (items.length === 0) {
-    kumoAsset = "/kumo-sad.png";
-    greeting = "Welcome back,";
-  }
-
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-app)]">
-      <Sparkles className="animate-spin text-[var(--accent)]" />
-    </div>
-  );
+    loadHomeData();
+  }, []);
 
   return (
-    <div className="min-h-screen pb-32 px-6 pt-6 bg-[var(--bg-app)] text-[var(--text-main)] transition-colors duration-500">
+    <div className={`min-h-screen pb-32 px-6 pt-12 transition-colors duration-1000 ${resolvedTheme} bg-[var(--bg-app)] text-[var(--text-main)]`}>
       
-      <header className="flex justify-between items-start mb-12 relative z-10">
-        <div className="animate-in fade-in slide-in-from-left-4 duration-700">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--accent-pink)] mb-1 opacity-80">
-            {greeting}
-          </p>
-          <h1 className="text-4xl font-black tracking-tighter lowercase leading-none">
-            {username}
-          </h1>
-        </div>
-
-        <div className="relative group cursor-pointer" onClick={() => navigate('/profile')}>
-           <img 
-             src={kumoAsset} 
-             alt="Kumoru" 
-             className="w-20 h-20 drop-shadow-[0_10px_20px_rgba(163,137,244,0.3)] group-hover:scale-110 transition-transform duration-500" 
-           />
-           {isNightTime && (
-             <div className="absolute -top-1 -right-1 text-xs animate-bounce opacity-70 flex gap-1">
-               <span>z</span><span className="delay-100">z</span><span className="delay-200">z</span>
-             </div>
-           )}
-        </div>
+      <header className="mb-10">
+        <h1 className="text-3xl font-black uppercase tracking-tighter italic leading-none">
+          Your Orbit <br/>
+          <span className="text-[var(--accent)] text-lg not-italic lowercase tracking-normal font-bold opacity-80">
+            {user?.email?.split('@')[0]}
+          </span>
+        </h1>
       </header>
 
-      <main className="space-y-8">
-        
-        <div className="glass-panel p-8 relative overflow-hidden group">
-          <div className="absolute -right-4 -top-4 w-24 h-24 bg-[var(--accent)]/10 rounded-full blur-2xl group-hover:bg-[var(--accent)]/20 transition-colors" />
-          <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] block mb-3">Current Tier</span>
-          <h2 className="text-4xl font-black text-[var(--accent)] mb-6 flex items-center gap-3">
-            Daydream <Sparkles size={24} className="text-[var(--accent-pink)]" />
+      <div className="grid grid-cols-2 gap-4 mb-12">
+        <Link to="/trades" className="glass-panel p-6 bg-[var(--accent-pink)]/10 border-[var(--accent-pink)]/30">
+          <Zap size={24} className="text-[var(--accent-pink)] mb-3" />
+          <h3 className="font-black uppercase text-[10px] tracking-widest">Matches</h3>
+          <p className="text-[7px] font-bold text-[var(--text-muted)] uppercase mt-1">Start Trading</p>
+        </Link>
+        <Link to="/wishlist" className="glass-panel p-6 bg-[var(--accent-blue)]/10 border-[var(--accent-blue)]/30">
+          <Heart size={24} className="text-[var(--accent-blue)] mb-3" />
+          <h3 className="font-black uppercase text-[10px] tracking-widest">Wishlist</h3>
+          <p className="text-[7px] font-bold text-[var(--text-muted)] uppercase mt-1">View Saves</p>
+        </Link>
+      </div>
+
+      <section>
+        <div className="flex justify-between items-end mb-6">
+          <h2 className="text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-2">
+            <Sparkles size={14} className="text-[var(--accent)]" /> New In Orbit
           </h2>
-          <div className="w-full h-2 bg-[var(--bg-app)] rounded-full overflow-hidden border border-[var(--border-subtle)]">
-            <div className="h-full bg-gradient-to-r from-[var(--accent)] to-[var(--accent-pink)] w-1/3 shadow-[0_0_10px_rgba(163,137,244,0.5)]" />
-          </div>
+          <Link to="/catalog" className="text-[8px] font-black uppercase text-[var(--accent)] flex items-center gap-1">
+            Explore All <ArrowRight size={10} />
+          </Link>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <button onClick={() => navigate('/wardrobe')} className="glass-panel p-6 flex flex-col items-center gap-4 hover:bg-[var(--bg-card)] transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--accent-sky)]">
-              <Package size={24} />
+          {recentItems.map((item) => (
+            <div key={item.id} className="glass-panel p-4 bg-[#1A0B2E]/40 border-[#2D1B4E]">
+              <div className="aspect-square bg-black/20 rounded-2xl mb-3 flex items-center justify-center overflow-hidden">
+                <img src={item.image_url} alt="" className="w-full h-full object-contain p-2" />
+              </div>
+              <h4 className="text-[8px] font-black uppercase truncate">{item.name}</h4>
+              <span className="text-[7px] font-bold text-[var(--accent-blue)] uppercase">{item.rarity}</span>
             </div>
-            <span className="font-black text-[10px] uppercase tracking-widest">Wardrobe</span>
-          </button>
-
-          <button onClick={() => navigate('/catalog')} className="glass-panel p-6 flex flex-col items-center gap-4 hover:bg-[var(--bg-card)] transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-[var(--bg-app)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--accent-pink)]">
-              <Heart size={24} />
-            </div>
-            <span className="font-black text-[10px] uppercase tracking-widest">Wishlist</span>
-          </button>
+          ))}
         </div>
-
-        <section>
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-black tracking-tight">In Orbit Now</h3>
-            <button onClick={() => navigate('/catalog')} className="p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-subtle)]">
-              <ChevronRight size={18} />
-            </button>
-          </div>
-
-          {items.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4">
-              {items.map(item => (
-                <div key={item.id} className="glass-panel p-4 flex flex-col items-center text-center">
-                  <div className="w-full aspect-square rounded-xl bg-[var(--bg-app)] mb-3 overflow-hidden border border-[var(--border-subtle)]">
-                    <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" />
-                  </div>
-                  <span className="font-black text-[10px] tracking-tight truncate w-full">{item.name}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="glass-panel py-12 flex flex-col items-center justify-center border-dashed">
-              <img src="/kumo-sad.png" alt="Sad" className="w-20 h-20 mb-4 opacity-50 grayscale" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] text-center px-8">
-                The galaxy is quiet today.<br/>Go mint some new items!
-              </p>
-            </div>
-          )}
-        </section>
-      </main>
+      </section>
     </div>
   );
 }
