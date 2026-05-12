@@ -17,7 +17,6 @@ export default function ItemCard({ item, onToggleLock, variant = 'catalog' }: It
   // Logic: Duplicate Guard
   const isUnique = (item.quantity || 0) <= 1;
   const isLocked = item.is_padlocked || false;
-  const isTradeable = !isUnique && !isLocked;
 
   return (
     <div className={`glass-panel p-4 relative flex flex-col items-center transition-all duration-300 ${
