@@ -7,59 +7,70 @@ import CatalogPage from './pages/CatalogPage';
 import WishlistPage from './pages/WishlistPage';
 import ProfilePage from './pages/ProfilePage';
 import LoginPage from './pages/LoginPage';
+import TradesPage from './pages/TradesPage'; // New Trade Matching Page
 import Navigation from './components/Navigation';
 
+/**
+ * AppContent handles the theme class application and the 
+ * main routing logic for Kumomint v2.
+ */
 function AppContent() {
   const { user, loading } = useAuth();
   const { resolvedTheme } = useTheme();
 
-  // If the app is still checking who you are, show nothing for a second
+  // Prevent flicker during initial authentication check
   if (loading) return null;
 
   return (
     <div className={`min-h-screen ${resolvedTheme} transition-colors duration-1000`}>
       <Routes>
-        {/* If you aren't logged in, go to the login page */}
+        {/* Auth Routes */}
         <Route 
           path="/login" 
           element={!user ? <LoginPage /> : <Navigate to="/" />} 
         />
 
-        {/* If you ARE logged in, you can see these pages */}
+        {/* Protected Orbit Routes */}
         <Route 
           path="/" 
           element={user ? <CatalogPage /> : <Navigate to="/login" />} 
         />
         
-        {/* We point Search and Add back to the Catalog so they aren't empty */}
+        {/* Search Route */}
         <Route 
           path="/catalog" 
           element={user ? <CatalogPage /> : <Navigate to="/login" />} 
         />
+
+        {/* Trade Matching Route (Replaces the empty 'Add' screen) */}
         <Route 
-          path="/add" 
-          element={user ? <CatalogPage /> : <Navigate to="/login" />} 
+          path="/trades" 
+          element={user ? <TradesPage /> : <Navigate to="/login" />} 
         />
         
         <Route 
           path="/wishlist" 
           element={user ? <WishlistPage /> : <Navigate to="/login" />} 
         />
+        
         <Route 
           path="/profile" 
           element={user ? <ProfilePage /> : <Navigate to="/login" />} 
         />
 
-        {/* If you get lost, go back to the home page */}
+        {/* Catch-all redirect to ensure users never see a blank screen */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
 
-      {/* Show the bottom buttons if you are logged in */}
+      {/* Global Navigation - Only visible when logged in */}
       {user && <Navigation />}
     </div>
   );
 }
 
+/**
+ * Root App component providing Context for Auth, Theme, and Routing.
+ */
 export default function App() {
   return (
     <AuthProvider>
