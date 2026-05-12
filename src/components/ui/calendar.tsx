@@ -4,7 +4,8 @@ import * as React from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { DayPicker } from "react-day-picker"
 
-import { cn } from "../lib/utils" // Ensure this path matches your folder structure
+// FIXED: Corrected path to go up two levels to reach the src/lib folder
+import { cn } from "../../lib/utils" 
 import { buttonVariants } from "./button"
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
@@ -54,7 +55,7 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        // FIXED: Using the 'Chevron' component to satisfy react-day-picker v9
+        // FIXED: Modern v9 syntax for navigation icons
         Chevron: ({ orientation }) => {
           const Icon = orientation === "left" ? ChevronLeft : ChevronRight;
           return <Icon className="h-4 w-4" />;
