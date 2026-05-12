@@ -13,18 +13,30 @@ export default function Home() {
 
   useEffect(() => {
     async function loadHomeData() {
-      // Get the newest items added to the galaxy
-      const { data } = await supabase
-        .from('items')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(4);
-      
-      if (data) setRecentItems(data);
-      setLoading(false);
+      try {
+        // Get the newest items added to the galaxy
+        const { data } = await supabase
+          .from('items')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(4);
+        
+        if (data) setRecentItems(data);
+      } catch (err) {
+        console.error("Error loading orbit hub:", err);
+      } finally {
+        setLoading(false);
+      }
     }
     loadHomeData();
   }, []);
+
+  // FIXED: Using the loading state to satisfy TypeScript
+  if (loading) return (
+    <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
+      <Sparkles className="animate-spin text-[var(--accent)]" size={32} />
+    </div>
+  );
 
   return (
     <div className={`min-h-screen pb-32 px-6 pt-12 transition-colors duration-1000 ${resolvedTheme} bg-[var(--bg-app)] text-[var(--text-main)]`}>
