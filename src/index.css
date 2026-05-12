@@ -3,67 +3,50 @@
 @tailwind utilities;
 
 :root {
-  --bg-app: #FDF8F7;
-  --bg-card: #FFFFFF;
-  --text-main: #2E2A28;
-  --text-muted: #8E8A88;
-  --accent: #7ED7C1;
-  --border-subtle: #F0E6E4;
+  /* Sunny Garden (Light) */
+  --bg-app: #FFF9F9;
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --accent: #A389F4;
+  --accent-pink: #FF007A;
+  --accent-blue: #00D1FF;
+  --text-main: #2D1B4E;
+  --text-muted: #8E7DA0;
+  --border-subtle: rgba(45, 27, 78, 0.05);
 }
 
 .dark {
-  --bg-app: #1A0B2E;
-  --bg-card: #2D1B4E;
-  --text-main: #FFF9E3;
-  --text-muted: #A389F4;
+  /* Starry Nebula (Dark) */
+  --bg-app: #0C0F21;
+  --bg-card: rgba(26, 11, 46, 0.6);
   --accent: #A389F4;
-  --border-subtle: #483475;
-}
-
-/* 🌌 COSMIC NIGHT THEME (Velvet Vibes Palette) */
-.cosmic-night {
-  --bg-app: #0C0F21;            /* Deep Space Blue */
-  --bg-card: #1A0B2E;           /* Deep Nebula Purple */
-  --bg-secondary: #2a2563;      /* Dark Navy from your palette */
-  --accent: #A389F4;            /* Soft Lavender */
-  --accent-pink: #d672a1;       /* Nebula Pink from your palette */
-  --accent-blue: #80c0e4;       /* Sky Blue from your palette */
-  --text-main: #FFF9E3;         /* Star White */
-  --text-muted: #725ba3;        /* Muted Purple from your palette */
-  --border-subtle: #483475;
+  --accent-pink: #FF007A;
+  --accent-blue: #00D1FF;
+  --text-main: #FFFFFF;
+  --text-muted: #8E7DA0;
+  --border-subtle: rgba(163, 137, 244, 0.15);
 }
 
 body {
-  @apply transition-colors duration-1000;
   background-color: var(--bg-app);
   color: var(--text-main);
-  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
 }
 
-/* Universal Card Styling */
+/* 🌌 The Glassmorphism Effect */
 .glass-panel {
-  @apply rounded-[32px] border transition-all duration-300;
   background: var(--bg-card);
-  border-color: var(--border-subtle);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: 28px;
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.2);
 }
 
-/* ☄️ Shooting Star Animation */
-@keyframes shooting-star {
-  0% { transform: translateX(0) translateY(0) rotate(-45deg); opacity: 0; }
-  10% { opacity: 1; }
-  30% { transform: translateX(-500px) translateY(500px) rotate(-45deg); opacity: 0; }
-  100% { opacity: 0; }
-}
-
-.cosmic-night::after {
-  content: "";
-  position: fixed;
-  top: -50px;
-  right: -50px;
-  width: 2px;
-  height: 80px;
-  background: linear-gradient(to bottom, var(--accent-blue), transparent);
-  animation: shooting-star 12s infinite ease-in;
-  pointer-events: none;
-  z-index: 50;
+/* ⚡ Typography Fix */
+.heading-italic {
+  font-weight: 900;
+  text-transform: uppercase;
+  font-style: italic;
+  letter-spacing: -0.05em;
 }
