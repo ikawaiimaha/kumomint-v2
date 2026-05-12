@@ -11,7 +11,8 @@ import {
   Check, 
   Sparkles,
   Clock,
-  ShieldCheck
+  ShieldCheck,
+  PackageCheck
 } from 'lucide-react';
 
 interface TradeProposal {
@@ -30,6 +31,7 @@ export default function TradeInboxPage() {
   const navigate = useNavigate();
   const [proposals, setProposals] = useState<TradeProposal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState<string | null>(null);
 
   const fetchProposals = async () => {
     if (!user) return;
@@ -58,6 +60,26 @@ export default function TradeInboxPage() {
     if (!error) fetchProposals();
   };
 
+  /**
+   * 🔄 AUTO-SWAP LOGIC
+   * Calls the database function to swap items and update status.
+   */
+  const handleCompleteTrade = async (tradeId: string) => {
+    setProcessing(tradeId);
+    try {
+      const { error } = await supabase.rpc('complete_trade_and_swap', {
+        trade_uuid: tradeId
+      });
+      
+      if (error) throw error;
+      await fetchProposals();
+    } catch (err) {
+      console.error("Trade finalization failed:", err);
+    } finally {
+      setProcessing(null);
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
       <Sparkles className="animate-spin text-[var(--accent)]" size={32} />
@@ -78,11 +100,11 @@ export default function TradeInboxPage() {
         {proposals.map((trade) => {
           const isIncoming = trade.receiver_id === user?.id;
           const partnerId = isIncoming ? trade.sender_id : trade.receiver_id;
+          const isProcessing = processing === trade.id;
 
           return (
             <div key={trade.id} className={`glass-panel p-6 border-[#2D1B4E] relative overflow-hidden transition-all ${trade.status === 'completed' ? 'opacity-40 grayscale-[0.5]' : 'bg-[#1A0B2E]/60'}`}>
               
-              {/* Status Header */}
               <div className="flex justify-between items-center mb-6">
                  <div className="flex items-center gap-2">
                     <ShieldCheck size={14} className="text-[var(--accent-blue)]" />
@@ -99,13 +121,12 @@ export default function TradeInboxPage() {
                  </span>
               </div>
 
-              {/* Items Panel */}
               <div className="flex items-center justify-between gap-4 py-4 border-y border-white/5 mb-6">
                 <div className="flex-1 flex flex-col items-center">
                   <div className="w-16 h-16 bg-black/40 rounded-2xl p-2 mb-2 border border-white/5">
                     <img src={trade.sender_item.image_url} className="w-full h-full object-contain" alt="" />
                   </div>
-                  <span className="text-[7px] font-black uppercase text-[var(--text-muted)]">Sender Gives</span>
+                  <span className="text-[7px] font-black uppercase text-[var(--text-muted)] text-center">{trade.sender_item.name}</span>
                 </div>
 
                 <ArrowLeftRight size={20} className="text-[var(--accent)] opacity-30" />
@@ -114,11 +135,10 @@ export default function TradeInboxPage() {
                   <div className="w-16 h-16 bg-black/40 rounded-2xl p-2 mb-2 border border-white/5">
                     <img src={trade.receiver_item.image_url} className="w-full h-full object-contain" alt="" />
                   </div>
-                  <span className="text-[7px] font-black uppercase text-[var(--text-muted)]">Receiver Gives</span>
+                  <span className="text-[7px] font-black uppercase text-[var(--text-muted)] text-center">{trade.receiver_item.name}</span>
                 </div>
               </div>
 
-              {/* 🛠️ ACTION BUTTONS [No Chat - Action Only] */}
               <div className="grid grid-cols-2 gap-3">
                 {trade.status === 'pending' && isIncoming && (
                   <>
@@ -139,14 +159,15 @@ export default function TradeInboxPage() {
 
                 {trade.status === 'accepted' && (
                   <button 
-                    onClick={() => updateStatus(trade.id, 'completed')}
-                    className="col-span-2 py-4 bg-[var(--accent)] text-[var(--bg-app)] rounded-xl text-[9px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg"
+                    disabled={isProcessing}
+                    onClick={() => handleCompleteTrade(trade.id)}
+                    className="col-span-2 py-4 bg-[var(--accent)] text-[var(--bg-app)] rounded-xl text-[9px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
                   >
-                    <Check size={16} /> Mark as Complete
+                    {isProcessing ? <Sparkles className="animate-spin" size={16} /> : <PackageCheck size={16} />}
+                    {isProcessing ? 'Updating Inventories...' : 'Finalize & Swap Items'}
                   </button>
                 )}
 
-                {/* Counter Offer - Redirects to proposal flow with the partner's ID */}
                 {(trade.status === 'pending' || trade.status === 'declined') && (
                   <button 
                     onClick={() => navigate(`/propose-trade/${partnerId}`)}
