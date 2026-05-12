@@ -8,8 +8,7 @@ import {
   CheckCircle2, 
   XCircle, 
   RefreshCcw, 
-  Check, 
-  Sparkles,
+  Sparkles, // FIXED: Removed unused 'Check' icon
   Clock,
   ShieldCheck,
   PackageCheck
@@ -62,7 +61,7 @@ export default function TradeInboxPage() {
 
   /**
    * 🔄 AUTO-SWAP LOGIC
-   * Calls the database function to swap items and update status.
+   * Executes the SQL function to transfer items between inventories.
    */
   const handleCompleteTrade = async (tradeId: string) => {
     setProcessing(tradeId);
@@ -74,7 +73,7 @@ export default function TradeInboxPage() {
       if (error) throw error;
       await fetchProposals();
     } catch (err) {
-      console.error("Trade finalization failed:", err);
+      console.error("Trade swap failed:", err);
     } finally {
       setProcessing(null);
     }
