@@ -2,24 +2,12 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { 
-  Sparkles, 
-  ArrowRight, 
-  Heart, 
-  Zap, 
-  Bell, 
-  ShieldCheck 
-} from 'lucide-react';
+import { Sparkles, ArrowRight, Heart, Zap, Bell, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-/**
- * Home Hub: The main landing dashboard for Kumomint V3.
- * Features: Profile overview, Signal transmissions, and Recent Arrivals.
- */
 export default function Home() {
   const { user } = useAuth();
   const { resolvedTheme } = useTheme();
-  
   const [recentItems, setRecentItems] = useState<any[]>([]);
   const [notifCount, setNotifCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -27,48 +15,20 @@ export default function Home() {
   useEffect(() => {
     async function loadDashboardData() {
       if (!user) return;
-      
       try {
-        // 1. Fetch the 4 newest items added to the database
-        const { data: items } = await supabase
-          .from('items')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(4);
-
-        // 2. Fetch count of unread notifications
-        const { count } = await supabase
-          .from('notifications')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id)
-          .eq('is_read', false);
-        
+        const { data: items } = await supabase.from('items').select('*').order('created_at', { ascending: false }).limit(4);
+        const { count } = await supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('is_read', false);
         if (items) setRecentItems(items);
         if (count !== null) setNotifCount(count);
       } catch (err) {
-        console.error("Dashboard synchronization failed:", err);
+        console.error("Dashboard sync failed:", err);
       } finally {
         setLoading(false);
       }
     }
-
     loadDashboardData();
-
-    // 📡 Real-time Listener for the notification bubble
-    const channel = supabase
-      .channel('home-signals')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` }, 
-        () => {
-          setNotifCount(prev => prev + 1);
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  // Loading state with Sparkles to satisfy TypeScript
   if (loading) return (
     <div className="min-h-screen bg-[var(--bg-app)] flex items-center justify-center">
       <Sparkles className="animate-spin text-[var(--accent)]" size={32} />
@@ -77,14 +37,12 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen pb-32 px-6 pt-12 transition-colors duration-1000 ${resolvedTheme} bg-[var(--bg-app)] text-[var(--text-main)]`}>
-      
-      {/* 🌌 Profile Header */}
       <header className="mb-10 flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-black uppercase tracking-tighter italic leading-none">
             Your Orbit <br/>
             <span className="text-[var(--accent)] text-lg not-italic lowercase tracking-normal font-bold opacity-80">
-              {user?.email?.split('@')[0]}
+              {user?.email?.split('@')[0] || "Voyager"}
             </span>
           </h1>
           <div className="flex items-center gap-1.5 mt-2 opacity-50">
@@ -92,16 +50,12 @@ export default function Home() {
             <span className="text-[8px] font-black uppercase tracking-widest">Active Voyager</span>
           </div>
         </div>
-        
         <div className="p-3 glass-panel bg-[var(--bg-card)] border-[var(--border-subtle)]">
           <Sparkles size={18} className="text-[var(--accent)] animate-pulse" />
         </div>
       </header>
 
-      {/* 🛰️ Signal & Action Grid */}
       <div className="grid grid-cols-2 gap-4 mb-12">
-        
-        {/* Signal Transmissions (Notifications) */}
         <Link to="/notifications" className="relative glass-panel p-6 bg-[var(--accent)]/10 border-[var(--accent)]/30 group active:scale-95 transition-all">
           {notifCount > 0 && (
             <div className="absolute -top-2 -right-2 w-6 h-6 bg-[var(--accent-pink)] rounded-full flex items-center justify-center text-[10px] font-black text-white shadow-[0_0_15px_rgba(255,0,122,0.5)] border-2 border-[var(--bg-app)] animate-bounce">
@@ -115,21 +69,18 @@ export default function Home() {
           </p>
         </Link>
 
-        {/* Perfect Matches */}
         <Link to="/trades" className="glass-panel p-6 bg-[var(--accent-pink)]/10 border-[var(--accent-pink)]/30 group active:scale-95 transition-all">
           <Zap size={24} className="text-[var(--accent-pink)] mb-3" />
           <h3 className="font-black uppercase text-[10px] tracking-widest">Matches</h3>
           <p className="text-[7px] font-bold text-[var(--text-muted)] uppercase mt-1">Mutual Trades</p>
         </Link>
 
-        {/* Wishlist View */}
         <Link to="/wishlist" className="glass-panel p-6 bg-[var(--accent-blue)]/10 border-[var(--accent-blue)]/30 group active:scale-95 transition-all">
           <Heart size={24} className="text-[var(--accent-blue)] mb-3" />
           <h3 className="font-black uppercase text-[10px] tracking-widest">Wishlist</h3>
           <p className="text-[7px] font-bold text-[var(--text-muted)] uppercase mt-1">Saved Dreamies</p>
         </Link>
 
-        {/* Explore All */}
         <Link to="/catalog" className="glass-panel p-6 bg-[var(--bg-card)] border-[var(--border-subtle)] group active:scale-95 transition-all">
           <ArrowRight size={24} className="text-[var(--text-main)] mb-3" />
           <h3 className="font-black uppercase text-[10px] tracking-widest">Explore</h3>
@@ -137,7 +88,6 @@ export default function Home() {
         </Link>
       </div>
 
-      {/* ✨ New In Orbit Section */}
       <section>
         <div className="flex justify-between items-end mb-6 px-1">
           <h2 className="text-[10px] font-black uppercase tracking-[0.3em] flex items-center gap-2">
@@ -152,11 +102,7 @@ export default function Home() {
           {recentItems.map((item) => (
             <div key={item.id} className="glass-panel p-4 bg-[#1A0B2E]/40 border-[#2D1B4E] hover:border-[var(--accent-blue)]/50 transition-all group">
               <div className="aspect-square bg-[#0C0F21] rounded-2xl mb-3 flex items-center justify-center overflow-hidden border border-[#2D1B4E]">
-                <img 
-                  src={item.image_url} 
-                  alt="" 
-                  className="w-full h-full object-contain p-2 group-hover:scale-110 transition-transform duration-500" 
-                />
+                <img src={item.image_url} alt="" className="w-full h-full object-contain p-2 group-hover:scale-110 transition-transform duration-500" />
               </div>
               <h4 className="text-[8px] font-black uppercase truncate text-[var(--text-main)]">{item.name}</h4>
               <span className="text-[7px] font-bold text-[var(--accent-blue)] uppercase">{item.rarity}</span>
