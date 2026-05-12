@@ -18,10 +18,9 @@ function AppContent() {
 
   if (loading) return null;
 
-  // IMPORTANT: The className below applies the 'dark' or 'light' class
   return (
-    <div className={`${resolvedTheme} min-h-screen transition-colors duration-700`}>
-      <div className="bg-[var(--bg-app)] min-h-screen text-[var(--text-main)]">
+    <div className={resolvedTheme}>
+      <div className="bg-[var(--bg-app)] min-h-screen text-[var(--text-main)] transition-colors duration-500">
         <Routes>
           <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" />} />
           <Route path="/" element={user ? <Home /> : <Navigate to="/login" />} />
@@ -31,6 +30,7 @@ function AppContent() {
           <Route path="/notifications" element={user ? <NotificationsPage /> : <Navigate to="/login" />} />
           <Route path="/wishlist" element={user ? <WishlistPage /> : <Navigate to="/login" />} />
           <Route path="/profile" element={user ? <ProfilePage /> : <Navigate to="/login" />} />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
         {user && <Navigation />}
       </div>
