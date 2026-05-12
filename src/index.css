@@ -5,45 +5,45 @@
 :root {
   /* Sunny Garden (Light) */
   --bg-app: #FFF9F9;
-  --bg-card: rgba(255, 255, 255, 0.8);
+  --bg-card: rgba(255, 255, 255, 0.85);
   --accent: #A389F4;
   --accent-pink: #FF007A;
   --accent-blue: #00D1FF;
   --text-main: #2D1B4E;
   --text-muted: #8E7DA0;
-  --border-subtle: rgba(45, 27, 78, 0.05);
+  --border-subtle: rgba(45, 27, 78, 0.08);
 }
 
+/* 🌌 STAR WORK: Dark Mode Override */
 .dark {
-  /* Starry Nebula (Dark) */
   --bg-app: #0C0F21;
-  --bg-card: rgba(26, 11, 46, 0.6);
+  --bg-card: rgba(26, 11, 46, 0.65);
   --accent: #A389F4;
   --accent-pink: #FF007A;
   --accent-blue: #00D1FF;
   --text-main: #FFFFFF;
   --text-muted: #8E7DA0;
-  --border-subtle: rgba(163, 137, 244, 0.15);
+  --border-subtle: rgba(163, 137, 244, 0.2);
 }
 
 body {
   background-color: var(--bg-app);
   color: var(--text-main);
-  font-family: 'Inter', sans-serif;
-  overflow-x: hidden;
+  font-family: 'Inter', -apple-system, sans-serif;
+  transition: background-color 0.4s ease, color 0.4s ease;
+  margin: 0;
 }
 
-/* 🌌 The Glassmorphism Effect */
+/* 🧪 The Glassmorphism Recipe */
 .glass-panel {
   background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
-  border-radius: 28px;
-  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.2);
+  border-radius: 32px;
+  box-shadow: 0 10px 40px -12px rgba(0, 0, 0, 0.25);
 }
 
-/* ⚡ Typography Fix */
 .heading-italic {
   font-weight: 900;
   text-transform: uppercase;
