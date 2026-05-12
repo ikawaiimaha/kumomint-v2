@@ -25,7 +25,7 @@ interface WishlistEntry {
   items: Item;
 }
 
-// Configuration for neon heart glows based on intensity
+// Neon heart glows based on intensity
 const HEART_CONFIG = {
   1: { color: "#00F3FF", glow: "0 0 12px #00F3FF" },      // Aqua Neon
   2: { color: "#9D00FF", glow: "0 0 15px #9D00FF" },      // Bright Purple
@@ -67,7 +67,7 @@ export default function WishlistPage() {
     else if (!authLoading) setLoading(false);
   }, [user, authLoading, fetchWishlist]);
 
-  // Filter wishlist items based on search input
+  // Filter items based on search input
   const filteredWishlist = wishlist.filter(entry => 
     entry.items?.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -81,7 +81,7 @@ export default function WishlistPage() {
   return (
     <div className={`min-h-screen bg-[var(--bg-app)] text-[var(--text-main)] pb-32 transition-colors duration-1000 ${resolvedTheme}`}>
       
-      {/* Sticky Header */}
+      {/* Sticky Header with Search */}
       <header className="p-6 bg-[var(--bg-card)] rounded-b-[40px] shadow-2xl sticky top-0 z-30 border-b border-[var(--border-subtle)]">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
@@ -98,7 +98,6 @@ export default function WishlistPage() {
           </button>
         </div>
 
-        {/* Search Bar within header */}
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={18} />
           <input 
@@ -120,7 +119,7 @@ export default function WishlistPage() {
             return (
               <div key={entry.id} className="glass-panel p-4 relative flex flex-col items-center bg-[var(--bg-card)] border-[var(--border-subtle)] group">
                 
-                {/* 💖 Intensity Hearts (No Text Labels) */}
+                {/* 💖 Intensity Hearts (No labels as requested) */}
                 <div className="absolute top-3 right-3 flex gap-0.5">
                   {Array.from({ length: entry.intensity }).map((_, i) => (
                     <Heart 
@@ -134,12 +133,12 @@ export default function WishlistPage() {
                   ))}
                 </div>
 
-                {/* Item Rarity Badge */}
+                {/* Item Rarity */}
                 <div className="absolute top-3 left-4 text-[8px] font-black text-[var(--text-muted)] uppercase tracking-widest">
                   {entry.items?.rarity}
                 </div>
 
-                {/* Item Image Container */}
+                {/* Item Image */}
                 <div className="aspect-square w-full bg-[#0C0F21]/40 rounded-2xl mb-4 mt-2 flex items-center justify-center overflow-hidden border border-[var(--border-subtle)]">
                   {entry.items?.image_url ? (
                     <img 
@@ -160,7 +159,6 @@ export default function WishlistPage() {
             );
           })
         ) : (
-          /* Empty State */
           <div className="col-span-2 text-center py-32 opacity-30 flex flex-col items-center">
             <Package size={48} className="mb-4 text-[var(--text-muted)]" />
             <p className="font-black uppercase tracking-[0.2em] text-[10px]">No items found in orbit</p>
