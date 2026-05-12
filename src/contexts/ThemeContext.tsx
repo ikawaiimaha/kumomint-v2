@@ -1,55 +1,75 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type Theme = 'light' | 'dark' | 'cosmic-night';
 
 interface ThemeContextType {
   theme: Theme;
+  toggleTheme: () => void;
   resolvedTheme: Theme;
-  setTheme: (theme: Theme) => void;
-  toggleTheme: () => void; // Added back to fix ProfilePage error
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark');
-  const [resolvedTheme, setResolvedTheme] = useState<Theme>('dark');
+  // Use 'cosmic-night' as the default starting point for your aesthetic
+  const [theme, setTheme] = useState<Theme>(() => {
+    return (localStorage.getItem('theme') as Theme) || 'cosmic-night';
+  });
 
-  const toggleTheme = () => {
-    setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
-  };
+  const [resolvedTheme, setResolvedTheme] = useState<Theme>(theme);
 
+  // 🌍 SHARJAH TIME LOGIC
   useEffect(() => {
-    const updateTheme = () => {
-      const hour = new Date().getHours();
-      // Automatic Cosmic Night between 6 PM and 6 AM
-      const isNightTime = hour >= 18 || hour < 6;
+    const updateThemeBasedOnTime = () => {
+      // If the user manually picked a theme, don't override it
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        setResolvedTheme(savedTheme as Theme);
+        return;
+      }
 
-      if (isNightTime) {
+      // Check current time in Sharjah
+      const now = new Date();
+      const hour = now.getHours();
+
+      // Cosmic Night is active from 6 PM (18:00) to 6 AM (06:00)
+      if (hour >= 18 || hour < 6) {
         setResolvedTheme('cosmic-night');
-        document.documentElement.classList.add('cosmic-night');
-        document.documentElement.classList.remove('light', 'dark');
       } else {
-        setResolvedTheme(theme);
-        document.documentElement.classList.add(theme);
-        document.documentElement.classList.remove('cosmic-night');
+        setResolvedTheme('light');
       }
     };
 
-    updateTheme();
-    const interval = setInterval(updateTheme, 60000);
+    updateThemeBasedOnTime();
+    const interval = setInterval(updateThemeBasedOnTime, 60000); // Check every minute
     return () => clearInterval(interval);
   }, [theme]);
 
+  // Handle manual theme switching (The Sun/Moon button in your header)
+  const toggleTheme = () => {
+    const nextTheme = theme === 'light' ? 'cosmic-night' : 'light';
+    setTheme(nextTheme);
+    localStorage.setItem('theme', nextTheme);
+  };
+
+  // Apply the theme class to the HTML body so the CSS variables work
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove('light', 'dark', 'cosmic-night');
+    root.classList.add(resolvedTheme);
+  }, [resolvedTheme]);
+
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, resolvedTheme }}>
       {children}
     </ThemeContext.Provider>
   );
 }
 
-export const useTheme = () => {
+export function useTheme() {
   const context = useContext(ThemeContext);
-  if (!context) throw new Error('useTheme must be used within a ThemeProvider');
+  if (context === undefined) {
+    throw new Error('useTheme must be used within a ThemeProvider');
+  }
   return context;
-};
+}
