@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Heart, Sparkles, Package, Tag } from 'lucide-react';
+import { Search, Heart, Sparkles, Package } from 'lucide-react'; // FIXED: Removed unused 'Tag'
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { supabase } from '../lib/supabase';
