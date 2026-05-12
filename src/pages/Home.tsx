@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Sparkles, ArrowRight, Heart, Zap, Bell } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import ItemCard from '../components/ItemCard'; // Ensure this import is here
 
 export default function Home() {
   const { user } = useAuth();
@@ -12,7 +13,12 @@ export default function Home() {
   useEffect(() => {
     async function loadData() {
       if (!user) return;
-      const { data } = await supabase.from('items').select('*').limit(4).order('created_at', { ascending: false });
+      const { data } = await supabase
+        .from('items')
+        .select('*')
+        .limit(4)
+        .order('created_at', { ascending: false });
+      
       if (data) setRecentItems(data);
       setLoading(false);
     }
@@ -26,10 +32,11 @@ export default function Home() {
   );
 
   return (
-    <div className="pb-32 px-6 pt-12">
+    <div className="pb-32 px-6 pt-12 min-h-screen bg-[var(--bg-app)] text-[var(--text-main)]">
+      {/* 🚀 Brand Identity Header */}
       <div className="flex justify-between items-center mb-10">
         <span className="brand-title text-xl tracking-tighter">KUMOMINT</span>
-        <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full bg-[var(--accent)]/10 flex items-center justify-center border border-[var(--accent)]/20">
           <Sparkles size={14} className="text-[var(--accent)]" />
         </div>
       </div>
@@ -44,6 +51,7 @@ export default function Home() {
         </p>
       </header>
 
+      {/* 🛰️ Action Grid */}
       <div className="grid grid-cols-2 gap-3 mb-12">
         <Link to="/notifications" className="glass-panel p-5 flex flex-col items-start gap-4 active:scale-95 transition-all">
           <Bell className="text-[var(--accent)]" size={20} />
@@ -74,6 +82,28 @@ export default function Home() {
           </div>
         </Link>
       </div>
+
+      {/* ✨ New In Orbit Section (This uses the 'recentItems' variable) */}
+      <section>
+        <div className="flex justify-between items-end mb-6 px-1">
+          <h2 className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 opacity-50">
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--accent-pink)]" /> New Arrivals
+          </h2>
+          <Link to="/catalog" className="text-[8px] font-black uppercase text-[var(--accent)] flex items-center gap-1">
+            Browse All <ArrowRight size={10} />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          {recentItems.map((item) => (
+            <ItemCard 
+              key={item.id} 
+              item={item} 
+              variant="catalog" 
+            />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
