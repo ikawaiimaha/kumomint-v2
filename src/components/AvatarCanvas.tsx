@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 
 // 🥞 Strict Z-Index Layering Dictionary
 // Ensures back hair is always behind the body, and accessories are always on top.
