@@ -1,69 +1,64 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&family=Syne:wght@400..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;900&family=Syne:wght@800&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Sunny Garden (Light Mode) */
+  /* Soft Cyborg (Sunny Garden) */
   --bg-app: #FFF9F9;
-  --bg-card: rgba(255, 255, 255, 0.85);
-  --accent: #A389F4;
-  --accent-pink: #FF007A;
+  --bg-card: rgba(255, 255, 255, 0.8);
+  --accent: #FF007A; /* The Bottom Left Pink */
   --accent-blue: #00D1FF;
   --text-main: #2D1B4E;
   --text-muted: #8E7DA0;
-  --border-subtle: rgba(45, 27, 78, 0.08);
+  
   --font-primary: 'Outfit', sans-serif;
   --font-brand: 'Syne', sans-serif;
 }
 
-/* 🌌 STAR WORK: Dark Mode Override */
 .dark {
-  --bg-app: #0C0F21;
-  --bg-card: rgba(26, 11, 46, 0.65);
-  --accent: #A389F4;
-  --accent-pink: #FF007A;
+  /* Soft Cyborg (Starry Nebula) */
+  --bg-app: #0F091E;
+  --bg-card: rgba(45, 27, 78, 0.6);
+  --accent: #FF007A;
   --accent-blue: #00D1FF;
   --text-main: #FFFFFF;
-  --text-muted: #8E7DA0;
-  --border-subtle: rgba(163, 137, 244, 0.2);
+  --text-muted: #BFAECB;
 }
 
 body {
-  background-color: var(--bg-app) !important;
+  background-color: var(--bg-app);
   color: var(--text-main);
   font-family: var(--font-primary);
-  transition: background-color 0.4s ease, color 0.4s ease;
-  margin: 0;
   -webkit-font-smoothing: antialiased;
 }
 
-/* 💠 The Kumomint Brand Identity */
-.brand-title {
+/**
+ * 🍬 SOFT CYBORG UI COMPONENTS
+ * This replaces the tech/Y2K hard edges.
+ */
+
+/* Force all headers to use the Heavy Italic Syne font */
+h1, h2, .brand-text {
   font-family: var(--font-brand);
   font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: -0.05em;
   font-style: italic;
-  background: linear-gradient(to right, var(--accent), var(--accent-pink));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  letter-spacing: -0.04em;
 }
 
-.heading-italic {
-  font-family: var(--font-brand);
-  font-weight: 800;
-  text-transform: uppercase;
-  font-style: italic;
-  letter-spacing: -0.02em;
-}
-
+/* Glass Panels: Soft, Rounded, Glowing Pink */
 .glass-panel {
   background: var(--bg-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-subtle);
-  border-radius: 32px;
-  box-shadow: 0 10px 40px -12px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 0, 122, 0.05); /* Pink border */
+  border-radius: 28px; /* Very soft corners */
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Specific Glow: Matches your choice */
+.pink-glow {
+  box-shadow: 0 0 15px rgba(255, 0, 122, 0.1);
 }
